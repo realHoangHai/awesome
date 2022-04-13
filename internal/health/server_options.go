@@ -2,7 +2,7 @@ package health
 
 import (
 	"github.com/realHoangHai/awesome/config"
-	"github.com/realHoangHai/awesome/config/envconfig"
+	"github.com/realHoangHai/awesome/config/env"
 	"github.com/realHoangHai/awesome/pkg/log"
 	"time"
 )
@@ -31,7 +31,7 @@ func Logger(l log.Logger) ServerOption {
 // FromEnv is an option to load config from environment variables.
 func FromEnv(opts ...config.ReadOption) ServerOption {
 	conf := Config{}
-	envconfig.Read(&conf, opts...)
+	env.Read(&conf, opts...)
 	return func(srv *MServer) {
 		srv.conf = conf
 	}

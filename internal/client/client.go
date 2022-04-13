@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/realHoangHai/awesome/config"
-	"github.com/realHoangHai/awesome/config/envconfig"
+	"github.com/realHoangHai/awesome/config/env"
 	"github.com/realHoangHai/awesome/internal/auth/jwt"
 	"github.com/realHoangHai/awesome/pkg/log"
 	contextutil "github.com/realHoangHai/awesomeProject/utils/context"
@@ -38,7 +38,7 @@ type (
 // ReadConfigFromEnv read client config from environment variables.
 func ReadConfigFromEnv(opts ...config.ReadOption) *Config {
 	conf := Config{}
-	envconfig.Read(&conf, opts...)
+	env.Read(&conf, opts...)
 	conf.Address = GetAddressFromEnv(opts...)
 	return &conf
 }
@@ -137,7 +137,7 @@ func GetAddressFromEnv(opts ...config.ReadOption) string {
 		Port    string `envconfig:"PORT"`
 		Address string `envconfig:"ADDRESS"`
 	}
-	envconfig.Read(&conf, opts...)
+	env.Read(&conf, opts...)
 	if conf.Port != "" {
 		return fmt.Sprintf(":%s", conf.Port)
 	}

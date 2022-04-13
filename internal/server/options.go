@@ -10,7 +10,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/realHoangHai/awesome/config"
-	"github.com/realHoangHai/awesome/config/envconfig"
+	"github.com/realHoangHai/awesome/config/env"
 	"github.com/realHoangHai/awesome/internal/auth"
 	"github.com/realHoangHai/awesome/internal/auth/jwt"
 	"github.com/realHoangHai/awesome/internal/health"
@@ -90,7 +90,7 @@ type (
 // ReadConfigFromEnv read the server configuration from environment variables.
 func ReadConfigFromEnv(opts ...config.ReadOption) Config {
 	conf := Config{}
-	envconfig.Read(&conf, opts...)
+	env.Read(&conf, opts...)
 	conf.Address = GetAddressFromEnv()
 	return conf
 }
@@ -295,7 +295,7 @@ func GetAddressFromEnv(opts ...config.ReadOption) string {
 		Port    string `envconfig:"PORT"`
 		Address string `envconfig:"ADDRESS"`
 	}
-	envconfig.Read(&conf, opts...)
+	env.Read(&conf, opts...)
 	if conf.Port != "" {
 		return fmt.Sprintf(":%s", conf.Port)
 	}

@@ -1,8 +1,7 @@
-package envconfig_test
+package config_test
 
 import (
 	"github.com/realHoangHai/awesome/config"
-	"github.com/realHoangHai/awesome/config/envconfig"
 	"os"
 	"testing"
 )
@@ -10,11 +9,11 @@ import (
 func TestReadConfig(t *testing.T) {
 	type myConfig struct {
 		Name      string `envconfig:"NAME" default:"awesome"`
-		Address   string `envconfig:"ADDRESS" default:"0.0.0.0:8088"`
+		Address   string `envconfig:"ADDRESS" default:"0.0.0.0:8000"`
 		Instances int    `envconfig:"INSTANCE"`
 		Secret    string `envconfig:"SECRET"`
 	}
-	defer envconfig.Close()
+	defer config.Close()
 	cases := []struct {
 		name    string
 		prepare func()
@@ -30,14 +29,14 @@ func TestReadConfig(t *testing.T) {
 			},
 			do: func() (myConfig, error) {
 				conf := myConfig{}
-				if err := envconfig.Read(&conf); err != nil {
+				if err := config.Read(&conf); err != nil {
 					return conf, err
 				}
 				return conf, nil
 			},
 			want: myConfig{
 				Name:      "awesome",
-				Address:   "0.0.0.0:8088",
+				Address:   "0.0.0.0:8000",
 				Instances: 0,
 				Secret:    "123",
 			},
@@ -47,7 +46,7 @@ func TestReadConfig(t *testing.T) {
 			prepare: func() {},
 			do: func() (myConfig, error) {
 				conf := myConfig{}
-				if err := envconfig.Read(&conf, config.WithFile("testdata/awesome.env")); err != nil {
+				if err := config.Read(&conf, config.WithFile("test/awesome.env")); err != nil {
 					return conf, err
 				}
 				return conf, nil
@@ -64,7 +63,7 @@ func TestReadConfig(t *testing.T) {
 			prepare: func() {},
 			do: func() (myConfig, error) {
 				conf := myConfig{}
-				if err := envconfig.Read(&conf, config.WithFileNoError("testdata/awesome.env")); err != nil {
+				if err := config.Read(&conf, config.WithFileNoError("test/awesome.env")); err != nil {
 					return conf, err
 				}
 				return conf, nil

@@ -1,4 +1,4 @@
-# awesomeProject
+# awesome
 
 Actually, it is not awesome at all. It's name is awesome because it's owner 
 using JetBrains Goland and he was too lazy to change the default idea project

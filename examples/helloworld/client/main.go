@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/realHoangHai/awesome/pkg/log"
 	"github.com/realHoangHai/awesomeProject/client"
 	"github.com/realHoangHai/awesomeProject/config"
 	pb "github.com/realHoangHai/awesomeProject/examples/helloworld/helloworld"
@@ -24,7 +25,7 @@ func main() {
 	name := flag.String("name", "Jack", "Name for greeting")
 	flag.Parse()
 
-	log2.Init(log2.FromEnv(config.WithFileNoError(".env")))
+	log.Init(log2.FromEnv(config.WithFileNoError(".env")))
 
 	conf := client.ReadConfigFromEnv(config.WithFileNoError(".env"))
 	conn := client.Must(client.Dial("", client.DialOptionsFromConfig(conf)...))

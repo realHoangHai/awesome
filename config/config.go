@@ -1,54 +1,71 @@
-// Package config defines standard interfaces for a config reader/writer.
 package config
 
-type (
-	// ReadOptions contains available options of Reader interface.
-	ReadOptions struct {
-		Prefix string
-		File   string
-		// Same as File but ignore error.
-		FileNoErr string
-	}
-
-	// ReadOption is a helper setting ReadOptions.
-	ReadOption func(o *ReadOptions)
-
-	// Reader is a configuration loader.
-	Reader interface {
-		// Read read the configuration into the given struct (ptr).
-		// The provided struct should be a pointer.
-		Read(ptr interface{}, options ...ReadOption) error
-
-		// Close close the underlying source.
-		Close() error
-	}
+import (
+	"bufio"
+	"fmt"
+	"github.com/kelseyhightower/envconfig"
+	"os"
+	"strings"
 )
 
-// WithPrefix return a with prefix reader option.
-func WithPrefix(prefix string) ReadOption {
-	return func(o *ReadOptions) {
-		o.Prefix = prefix
-	}
+var (
+	cfg = &Config{}
+)
+
+// Read read configuration from environment to the target ptr.
+func Read(ptr interface{}, opts ...ReadOption) error {
+	return cfg.Read(ptr, opts...)
 }
 
-// WithFile is an option allow the reader read configuration from a file.
-// If the file is not found, error will return.
-func WithFile(f string) ReadOption {
-	return func(o *ReadOptions) {
-		o.File = f
-	}
+// Close close the default config reader.
+func Close() error {
+	return cfg.Close()
 }
 
-// WithFileNoError same as WithFile but ignore error while reading the file.
-func WithFileNoError(f string) ReadOption {
-	return func(o *ReadOptions) {
-		o.FileNoErr = f
-	}
+type Config struct {
 }
 
-// Apply applies the given option.
-func (op *ReadOptions) Apply(opts ...ReadOption) {
-	for _, opt := range opts {
-		opt(op)
+// Read implements config.Reader interface.
+func (c *Config) Read(ptr interface{}, opts ...ReadOption) error {
+	ops := &ReadOptions{}
+	ops.Apply(opts...)
+	if ops.File != "" {
+		if err := loadEnvFromFile(ops.File); err != nil {
+			return err
+		}
 	}
+	if ops.FileNoErr != "" {
+		_ = loadEnvFromFile(ops.FileNoErr)
+	}
+	return envconfig.Process(ops.Prefix, ptr)
+}
+
+// loadEnvFromFile load environments from file
+// and set them to system environment via os.Setenv.
+func loadEnvFromFile(f string) error {
+	file, err := os.Open(f)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		txt := scanner.Text()
+		if strings.HasPrefix(txt, "#") || strings.TrimSpace(txt) == "" {
+			continue
+		}
+		env := strings.SplitN(txt, "=", 2)
+		if len(env) != 2 {
+			return fmt.Errorf("invalid pair: %v", txt)
+		}
+		k := env[0]
+		v := env[1]
+		_ = os.Setenv(k, v)
+	}
+	return nil
+}
+
+// Close implements config.Reader interface.
+func (c *Config) Close() error {
+	return nil
 }
