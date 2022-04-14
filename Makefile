@@ -7,6 +7,8 @@ init:
         google.golang.org/protobuf/cmd/protoc-gen-go \
         google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
+.PHONY: gen.error gen.api gen.wire
+
 gen.error:
 	protoc --proto_path=./pkg/errors \
 		   --proto_path=./third_party \
@@ -28,3 +30,8 @@ gen.api:
            --openapiv2_opt logtostderr=true \
            --openapiv2_opt json_names_for_fields=false \
 		   api/user/v1/*.proto
+
+
+# generate
+gen.wire:
+	wire ./cmd

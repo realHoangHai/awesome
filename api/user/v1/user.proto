@@ -34,6 +34,19 @@ service User {
 
   rpc GetAddress(GetAddressReq) returns (GetAddressReply) {
   }
+
+  rpc ListCard(ListCardReq) returns (ListCardReply) {
+  }
+
+  rpc CreateCard(CreateCardReq) returns (CreateCardReply) {
+  }
+
+  rpc GetCard(GetCardReq) returns (GetCardReply) {
+  }
+
+  rpc DeleteCard(DeleteCardReq) returns (DeleteCardReply) {
+  }
+
 }
 
 message GetUserReq {

@@ -2,7 +2,7 @@ package json
 
 import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/realHoangHai/awesomeProject/encoding"
+	"github.com/realHoangHai/awesome/pkg/encoding"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

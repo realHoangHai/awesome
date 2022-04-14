@@ -3,8 +3,8 @@ package encoding
 import "google.golang.org/grpc/encoding"
 
 const (
-	// ContentTypeJSON is json codec name.
-	ContentTypeJSON = "json"
+	// ContentTypeJson is json codec name.
+	ContentTypeJson = "json"
 	// ContentTypeProto is proto codec name.
 	ContentTypeProto = "proto"
 )

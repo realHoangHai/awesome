@@ -12,7 +12,7 @@ var (
 
 func init() {
 	if root == nil {
-		if err := Init(FromEnv()); err != nil {
+		if err := Init(); err != nil {
 			panic(err)
 		}
 	}
@@ -23,7 +23,7 @@ func init() {
 // It will panic if failed to init.
 func Root() Logger {
 	if root == nil {
-		if err := Init(FromEnv()); err != nil {
+		if err := Init(); err != nil {
 			panic(err)
 		}
 	}
@@ -107,8 +107,8 @@ type (
 	}
 )
 
-// NewLogrus return new logger with context.
-func NewLogger(opts ...Option) (*Logh, error) {
+// NewLogh return new logger with context.
+func NewLogh(opts ...Option) (*Logh, error) {
 	l := &Logh{}
 	if err := l.Init(opts...); err != nil {
 		return nil, err
@@ -178,6 +178,11 @@ func (l *Logh) Error(v ...interface{}) {
 	l.logger.Errorln(v...)
 }
 
+// Fatal fatal
+func (l *Logh) Fatal(v ...interface{}) {
+	l.logger.Fatalln(v...)
+}
+
 // Panic panic
 func (l *Logh) Panic(v ...interface{}) {
 	l.logger.Panicln(v...)
@@ -201,6 +206,11 @@ func (l *Logh) Warnf(format string, v ...interface{}) {
 // Errorf print error with format.
 func (l *Logh) Errorf(format string, v ...interface{}) {
 	l.logger.Errorf(format, v...)
+}
+
+// Fatalf panic with format.
+func (l *Logh) Fatalf(format string, v ...interface{}) {
+	l.logger.Fatalf(format, v...)
 }
 
 // Panicf panic with format.

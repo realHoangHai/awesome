@@ -5,16 +5,12 @@ import (
 	validate "github.com/go-playground/validator/v10"
 )
 
-type (
-	// Validator is a validation helper.
-	Validator struct {
-		v *validate.Validate
-	}
-)
+var root *Validator
 
-var (
-	root *Validator
-)
+// Validator is a validation helper.
+type Validator struct {
+	v *validate.Validate
+}
 
 // New return new instance of validator with the given tag.
 func New(tag string) *Validator {

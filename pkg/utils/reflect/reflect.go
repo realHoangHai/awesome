@@ -31,8 +31,8 @@ type (
 		DstResolver TagResolverFunc
 		TagValues   []string
 	}
-	// M is a map string of string.
-	M map[string]string
+	// MS is a map string of string.
+	MS map[string]string
 )
 
 var (
@@ -56,7 +56,7 @@ var (
 // GetFieldNamesFromTags return struct' field names of the given tag's values.
 // Return all field names if values is nil or its first value is *.
 // Return nil if the given value is not a struct.
-func GetFieldNamesFromTags(req GetFieldNamesFromTagsRequest) M {
+func GetFieldNamesFromTags(req GetFieldNamesFromTagsRequest) MS {
 	if req.Value == nil {
 		return nil
 	}
@@ -66,7 +66,7 @@ func GetFieldNamesFromTags(req GetFieldNamesFromTagsRequest) M {
 	}
 	tagsToFieldNames(m, req.Value, "", "", req.Tag, req.Resolver)
 	addAll := len(req.TagValues) == 0 || req.TagValues[0] == "*"
-	rs := make(M)
+	rs := make(MS)
 	if addAll {
 		for k, v := range m {
 			rs[k] = v
@@ -82,7 +82,7 @@ func GetFieldNamesFromTags(req GetFieldNamesFromTagsRequest) M {
 }
 
 // GetTagsFromTags get tag mapping values coresponding to the given tag values.
-func GetTagsFromTags(req GetTagsFromTagsRequest) M {
+func GetTagsFromTags(req GetTagsFromTagsRequest) MS {
 	if req.Value == nil {
 		return nil
 	}
@@ -95,7 +95,7 @@ func GetTagsFromTags(req GetTagsFromTagsRequest) M {
 	}
 	tagsToTags(m, req.Value, "", req.SrcTag, req.SrcResolver, "", req.DstTag, req.DstResolver)
 	addAll := len(req.TagValues) == 0 || req.TagValues[0] == "*"
-	rs := make(M)
+	rs := make(MS)
 	if addAll {
 		for k, v := range m {
 			rs[k] = v
@@ -195,7 +195,7 @@ func tagsToTags(res map[string]string, req interface{}, prefix1 string, tag1 str
 }
 
 // Keys return keys of the map.
-func (m M) Keys() []string {
+func (m MS) Keys() []string {
 	v := make([]string, 0)
 	for k := range m {
 		v = append(v, k)
@@ -204,7 +204,7 @@ func (m M) Keys() []string {
 }
 
 // Values return values of the map.
-func (m M) Values() []string {
+func (m MS) Values() []string {
 	v := make([]string, 0)
 	for _, vv := range m {
 		v = append(v, vv)

@@ -1,26 +1,19 @@
 package main
 
 import (
-	"flag"
-	"os"
+	"context"
+	"fmt"
+	"github.com/realHoangHai/awesome/config"
 )
-
-// go build -ldflags "-X main.Version=x.y.z"
-var (
-	// Name is the name of the compiled software.
-	Name string
-	// Version is the version of the compiled software.
-	Version string
-	// flagconf is the config flag
-	flagconf string
-
-	id, _ = os.Hostname()
-)
-
-func init() {
-	flag.StringVar(&flagconf, "conf", "../configs", "config path, eg: -conf config.yaml")
-}
 
 func main() {
-	flag.Parse()
+	cfg := &config.Config{
+		Core:  config.SectionCore{},
+		API:   config.SectionAPI{},
+		DB:    config.SectionDB{},
+		Log:   config.SectionLog{},
+		Redis: config.SectionRedis{},
+	}
+	err := InitializeServer(context.Background(), cfg)
+	fmt.Println(err)
 }

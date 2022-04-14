@@ -2,7 +2,7 @@ package utils_test
 
 import (
 	"context"
-	"github.com/realHoangHai/awesomeProject/utils"
+	"github.com/realHoangHai/awesome/pkg/utils"
 	"google.golang.org/grpc/metadata"
 	"testing"
 )

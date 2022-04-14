@@ -1,7 +1,7 @@
 package reflectutil_test
 
 import (
-	reflectutil "github.com/realHoangHai/awesomeProject/utils/reflect"
+	reflectutil "github.com/realHoangHai/awesome/pkg/utils/reflect"
 	"sort"
 	"testing"
 )

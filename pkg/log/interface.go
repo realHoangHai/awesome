@@ -3,9 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
-	"github.com/realHoangHai/awesome/config"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
@@ -28,6 +26,9 @@ type (
 		// Errorf print error with format.
 		Errorf(format string, v ...interface{})
 
+		// Fatalf fatal with format.
+		Fatalf(format string, v ...interface{})
+
 		// Panicf panic with format.
 		Panicf(format string, v ...interface{})
 
@@ -42,6 +43,9 @@ type (
 
 		// Error print error.
 		Error(v ...interface{})
+
+		// Fatal fatal.
+		Fatal(v ...interface{})
 
 		// Panic panic.
 		Panic(v ...interface{})
@@ -186,13 +190,13 @@ func fields(kv ...interface{}) map[string]interface{} {
 // LOG_TIME_FORMAT default:"Mon, 02 Jan 2006 15:04:05 -0700"
 // LOG_OUTPUT, default to be stdout, use file://my.log for writing to a file.
 // LOG_FIELDS is a map of key/value. i.e: name:myservice,site:vietnam
-func FromEnv(readOpts ...config.ReadOption) Option {
-	v := &Options{}
-	if err := config.Read(v, readOpts...); err != nil {
-		log.Println("[ERROR] log: failed to read log environment config, err:", err)
-	}
-	return FromOptions(v)
-}
+//func FromEnv(readOpts ...config.ReadOption) Option {
+//	v := &Options{}
+//	if err := config.Read(v, readOpts...); err != nil {
+//		log.Println("[ERROR] log: failed to read log environment config, err:", err)
+//	}
+//	return FromOptions(v)
+//}
 
 // FromOptions is an option to create new logger from an existing Options.
 func FromOptions(opts *Options) Option {

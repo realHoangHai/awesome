@@ -38,6 +38,24 @@
         }
       }
     },
+    "ListCardReplyCard": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "card_no": {
+          "type": "string"
+        },
+        "ccv": {
+          "type": "string"
+        },
+        "expires": {
+          "type": "string"
+        }
+      }
+    },
     "ListUserReplyUser": {
       "type": "object",
       "properties": {
@@ -98,6 +116,15 @@
         }
       }
     },
+    "v1CreateCardReply": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
     "v1CreateUserReply": {
       "type": "object",
       "properties": {
@@ -107,6 +134,14 @@
         },
         "username": {
           "type": "string"
+        }
+      }
+    },
+    "v1DeleteCardReply": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
         }
       }
     },
@@ -127,6 +162,24 @@
           "type": "string"
         },
         "post_code": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetCardReply": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "card_no": {
+          "type": "string"
+        },
+        "ccv": {
+          "type": "string"
+        },
+        "expires": {
           "type": "string"
         }
       }
@@ -162,6 +215,17 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/ListAddressReplyAddress"
+          }
+        }
+      }
+    },
+    "v1ListCardReply": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ListCardReplyCard"
           }
         }
       }

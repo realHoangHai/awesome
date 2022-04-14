@@ -2,25 +2,19 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"github.com/gorilla/handlers"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/realHoangHai/awesome/config"
-	"github.com/realHoangHai/awesome/config/env"
-	"github.com/realHoangHai/awesome/internal/auth"
-	"github.com/realHoangHai/awesome/internal/auth/jwt"
-	"github.com/realHoangHai/awesome/internal/health"
 	"github.com/realHoangHai/awesome/pkg/log"
+	"github.com/realHoangHai/awesome/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"net"
 	"net/http"
-	"net/http/pprof"
 	"net/textproto"
 	"time"
 )
@@ -29,123 +23,39 @@ const (
 	defaultAddr = ":8088"
 )
 
-type (
-	// Config is a common configuration of a default server.
-	Config struct {
-		// Name is name of the service.
-		Name string `envconfig:"NAME" default:"awesome"`
-		// Address is the address of the service in form of host:port.
-		// If PORT environment variable is configured, it will be prioritized over ADDRESS.
-		Address string `envconfig:"ADDRESS" default:":8088"`
-		// TLSCertFile is path to the TLS certificate file.
-		TLSCertFile string `envconfig:"TLS_CERT_FILE"`
-		// TLSKeyFile is the path to the TLS key file.
-		TLSKeyFile string `envconfig:"TLS_KEY_FILE"`
-
-		// HealthCheckPath is API path for the health check.
-		HealthCheckPath string `envconfig:"HEALTH_CHECK_PATH" default:"/internal/health"`
-
-		// ReadTimeout is read timeout of both gRPC and HTTP server.
-		ReadTimeout time.Duration `envconfig:"READ_TIMEOUT" default:"30s"`
-		// WriteTimeout is write timeout of both gRPC and HTTP server.
-		WriteTimeout time.Duration `envconfig:"WRITE_TIMEOUT" default:"30s"`
-		//ShutdownTimeout is timeout for shutting down the server.
-		ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
-		// APIPrefix is path prefix that gRPC API Gateway is routed to.
-		APIPrefix string `envconfig:"API_PREFIX" default:"/api/"`
-
-		// Web options
-		WebDir    string `envconfig:"WEB_DIR"`
-		WebIndex  string `envconfig:"WEB_INDEX" default:"index.html"`
-		WebPrefix string `envconfig:"WEB_PREFIX" default:"/"`
-
-		// JWTSecret is a short way to enable JWT Authentictor with the secret.
-		JWTSecret string `envconfig:"JWT_SECRET"`
-		// ContextLogger is an option to enable context logger with request-id.
-		ContextLogger bool `envconfig:"CONTEXT_LOGGER" default:"true"`
-
-		// Recovery is a short way to enable recovery interceptors for both unary and stream handlers.
-		Recovery bool `envconfig:"RECOVERY" default:"true"`
-
-		// CORS options
-		CORSAllowedHeaders    []string `envconfig:"CORS_ALLOWED_HEADERS"`
-		CORSAllowedMethods    []string `envconfig:"CORS_ALLOWED_METHODS"`
-		CORSAllowedOrigins    []string `envconfig:"CORS_ALLOWED_ORIGINS"`
-		CORSAllowedCredential bool     `envconfig:"CORS_ALLOWED_CREDENTIAL" default:"false"`
-
-		// PProf options
-		PProf       bool   `envconfig:"PPROF" default:"false"`
-		PProfPrefix string `envconfig:"PPROF_PREFIX"`
-
-		// Metrics enable/disable standard metrics
-		Metrics bool `envconfig:"METRICS" default:"true"`
-		// MetricsPath is API path for Prometheus metrics.
-		MetricsPath string `envconfig:"METRICS_PATH" default:"/internal/metrics"`
-
-		RoutesPrioritization bool   `envconfig:"ROUTES_PRIORITIZATION" default:"true"`
-		ShutdownHook         string `envconfig:"SHUTDOWN_HOOK"`
-	}
-)
-
-// ReadConfigFromEnv read the server configuration from environment variables.
-func ReadConfigFromEnv(opts ...config.ReadOption) Config {
-	conf := Config{}
-	env.Read(&conf, opts...)
-	conf.Address = GetAddressFromEnv()
-	return conf
-}
-
 // FromEnv is an option to create a new server from environment variables configuration.
 // See Config for the available options.
-func FromEnv(configOpts ...config.ReadOption) Option {
-	conf := ReadConfigFromEnv(configOpts...)
+func FromEnv(cfg *config.Config) Option {
 	return func(opts *Server) {
-		FromConfig(conf)(opts)
+		FromConfig(cfg)(opts)
 	}
 }
 
-// FromConfig is an option to create a new server from an existing config.
-func FromConfig(conf Config) Option {
+func FromConfig(cfg *config.Config) Option {
 	return func(server *Server) {
 		opts := []Option{
 			UnaryInterceptors(CorrelationIDUnaryInterceptor()),
 			StreamInterceptors(CorrelationIDStreamInterceptor()),
-			Address(conf.Address),
-			TLS(conf.TLSKeyFile, conf.TLSCertFile),
-			Timeout(conf.ReadTimeout, conf.WriteTimeout),
-			JWT(conf.JWTSecret),
-			APIPrefix(conf.APIPrefix),
-			CORS(conf.CORSAllowedCredential, conf.CORSAllowedHeaders, conf.CORSAllowedMethods, conf.CORSAllowedOrigins),
-			ShutdownTimeout(conf.ShutdownTimeout),
-			RoutesPrioritization(conf.RoutesPrioritization),
-			ShutdownHook(conf.ShutdownHook),
-		}
-		if conf.Metrics {
-			opts = append(opts, Metrics(conf.MetricsPath))
-		}
-		if conf.WebDir != "" {
-			opts = append(opts, Web(conf.WebPrefix, conf.WebDir, conf.WebIndex))
+			Address(cfg.Core.Address),
+			TLS(cfg.Core.TLSKeyFile, cfg.Core.TLSCertFile),
+			Timeout(cfg.Core.ReadTimeout, cfg.Core.WriteTimeout),
+			APIPrefix(cfg.Core.APIPrefix),
+			CORS(cfg.Core.CORSAllowedCredential, cfg.Core.CORSAllowedHeaders, cfg.Core.CORSAllowedMethods, cfg.Core.CORSAllowedOrigins),
+			ShutdownTimeout(cfg.Core.ShutdownTimeout),
 		}
 		// context logger
-		if conf.ContextLogger {
+		if cfg.Core.ContextLogger {
 			logger := log.Root()
-			if conf.Name != "" {
-				logger = logger.Fields("name", conf.Name)
+			if cfg.Core.Name != "" {
+				logger = logger.Fields("name", cfg.Core.Name)
 			}
 			opts = append(opts, Logger(logger))
 		}
-		// create health check by default
-		opts = append(opts, HealthCheck(conf.HealthCheckPath,
-			health.NewServer(map[string]health.Checker{},
-				health.Logger(server.getLogger()))))
 		// recovery
-		if conf.Recovery {
+		if cfg.Core.Recovery {
 			opts = append(opts, Recovery(nil))
 		}
-		if conf.PProf {
-			opts = append(opts, PProf(conf.PProfPrefix))
-		}
-		// apply all
+		// apply options
 		for _, opt := range opts {
 			opt(server)
 		}
@@ -175,10 +85,21 @@ func Listener(lis net.Listener) Option {
 	}
 }
 
-// StreamInterceptors is an option allows user to add additional stream interceptors to the server.
-func StreamInterceptors(interceptors ...grpc.StreamServerInterceptor) Option {
-	return func(opts *Server) {
-		opts.streamInterceptors = append(opts.streamInterceptors, interceptors...)
+// CorrelationIDUnaryInterceptor returns a grpc.UnaryServerInterceptor that provides
+// a context with correlation_id for tracing. It will try to looks for value of X-Correlation-ID or X-Request-ID
+// in the metadata of the incoming request. If no value is provided, a new UUID will be generated.
+func CorrelationIDUnaryInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		id, ok := utils.CorrelationIDFromContext(ctx)
+		if ok {
+			return handler(ctx, req)
+		}
+		md := metadata.Pairs(utils.XCorrelationID, id)
+		if imd, ok := metadata.FromIncomingContext(ctx); ok {
+			md = metadata.Join(md, imd)
+		}
+		newCtx := metadata.NewIncomingContext(ctx, md)
+		return handler(newCtx, req)
 	}
 }
 
@@ -189,21 +110,30 @@ func UnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) Option {
 	}
 }
 
-// JWT is an option allows user to use jwt authenticator for authentication.
-func JWT(secret string) Option {
-	return func(opts *Server) {
-		if secret == "" {
-			return
+// CorrelationIDStreamInterceptor returns a grpc.StreamServerInterceptor that provides
+// a context with correlation_id for tracing. It will try to looks for value of X-Correlation-ID or X-Request-ID
+// in the metadata of the incoming request. If no value is provided, a new UUID will be generated.
+func CorrelationIDStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		id, ok := utils.CorrelationIDFromContext(ss.Context())
+		if ok {
+			return handler(srv, ss)
 		}
-		opts.auth = jwt.Authenticator([]byte(secret))
+		wrapped := grpc_middleware.WrapServerStream(ss)
+		md := metadata.Pairs(utils.XCorrelationID, id)
+		if imd, ok := metadata.FromIncomingContext(ss.Context()); ok {
+			md = metadata.Join(md, imd)
+		}
+		wrapped.WrappedContext = metadata.NewIncomingContext(ss.Context(), md)
+
+		return handler(srv, wrapped)
 	}
 }
 
-// Auth is an option allows user to use an authenticator for authentication.
-// Find more about authenticators in auth package.
-func Auth(f auth.Authenticator) Option {
+// StreamInterceptors is an option allows user to add additional stream interceptors to the server.
+func StreamInterceptors(interceptors ...grpc.StreamServerInterceptor) Option {
 	return func(opts *Server) {
-		opts.auth = f
+		opts.streamInterceptors = append(opts.streamInterceptors, interceptors...)
 	}
 }
 
@@ -261,50 +191,6 @@ func Options(serverOpts ...grpc.ServerOption) Option {
 	}
 }
 
-// HealthCheck is an option allows user to provide a custom health check server.
-func HealthCheck(path string, srv health.Server) Option {
-	return func(opts *Server) {
-		opts.healthCheckPath = path
-		opts.healthSrv = srv
-	}
-}
-
-// HealthChecks is an option allows user to provide custom health checkers
-// using default health check server.
-func HealthChecks(checkers map[string]health.Checker) Option {
-	return func(opts *Server) {
-		opts.healthCheckPath = opts.getHealthCheckPath()
-		opts.healthSrv = health.NewServer(checkers, health.Logger(opts.getLogger()))
-	}
-}
-
-// AddressFromEnv is an option allows user to set address using environment configuration.
-// It looks for PORT and then ADDRESS variables.
-// This option is mostly used for cloud environment like Heroku where the port is randomly set.
-func AddressFromEnv(opts ...config.ReadOption) Option {
-	return func(srv *Server) {
-		srv.address = GetAddressFromEnv(opts...)
-	}
-}
-
-// GetAddressFromEnv returns address from configured environment variables: PORT or ADDRESS.
-// This function prioritizes PORT over ADDRESS.
-// If non of the variables is configured, return default address.
-func GetAddressFromEnv(opts ...config.ReadOption) string {
-	var conf struct {
-		Port    string `envconfig:"PORT"`
-		Address string `envconfig:"ADDRESS"`
-	}
-	env.Read(&conf, opts...)
-	if conf.Port != "" {
-		return fmt.Sprintf(":%s", conf.Port)
-	}
-	if conf.Address != "" {
-		return conf.Address
-	}
-	return defaultAddr
-}
-
 // Handler is an option allows user to add additional HTTP handlers.
 // Longer patterns take precedence over shorter ones by default,
 // use RoutesPrioritization option to disable this rule.
@@ -346,13 +232,6 @@ func HandlerWithOptions(path string, h http.Handler, hopt *HandlerOptions) Optio
 	}
 }
 
-// RoutesPrioritization enable/disable the routes prioritization.
-func RoutesPrioritization(enable bool) Option {
-	return func(opts *Server) {
-		opts.routesPrioritization = enable
-	}
-}
-
 // HTTPInterceptors is an option allows user to set additional interceptors to the root HTTP handler.
 // If interceptors are applied to gRPC, it is required that the interceptors don't hijack the response writer,
 // otherwise panic "Hijack not supported" will be thrown.
@@ -369,19 +248,6 @@ func APIPrefix(prefix string) Option {
 	return func(opts *Server) {
 		opts.apiPrefix = prefix
 	}
-}
-
-// Web is an option to allows user to serve Web/Single Page Application
-// along with API Gateway and gRPC. API Gateway must be served in a
-// different path prefix with the web path prefix.
-func Web(pathPrefix, dir, index string) Option {
-	if pathPrefix == "" {
-		pathPrefix = "/"
-	}
-	return PrefixHandler(pathPrefix, spaHandler{
-		index: index,
-		dir:   dir,
-	})
 }
 
 // Recovery is an option allows user to add an ability to recover a handler/API from a panic.
@@ -404,7 +270,7 @@ func Recovery(handler func(context.Context, interface{}) error) Option {
 // CORS is an option allows users to enable CORS on the server.
 func CORS(allowCredential bool, headers, methods, origins []string) Option {
 	return func(opts *Server) {
-		options := []handlers.CORSOption{}
+		var options []handlers.CORSOption
 		if allowCredential {
 			options = append(options, handlers.AllowCredentials())
 		}
@@ -420,49 +286,6 @@ func CORS(allowCredential bool, headers, methods, origins []string) Option {
 		if len(options) > 0 {
 			opts.httpInterceptors = append(opts.httpInterceptors, handlers.CORS(options...))
 		}
-	}
-}
-
-// PProf is an option allows user to enable Go profiler.
-func PProf(pathPrefix string) Option {
-	return func(opts *Server) {
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: pathPrefix + "/debug/pprof/",
-			h: http.HandlerFunc(pprof.Index),
-		})
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: pathPrefix + "/debug/pprof/cmdline",
-			h: http.HandlerFunc(pprof.Cmdline),
-		})
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: pathPrefix + "/debug/pprof/profile",
-			h: http.HandlerFunc(pprof.Profile),
-		})
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: pathPrefix + "/debug/pprof/symbol",
-			h: http.HandlerFunc(pprof.Symbol),
-		})
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: pathPrefix + "/debug/pprof/trace",
-			h: http.HandlerFunc(pprof.Trace),
-		})
-	}
-}
-
-// Metrics is an option to register standard Prometheus metrics for HTTP.
-// Default path is /internal/metrics.
-func Metrics(path string) Option {
-	return func(opts *Server) {
-		p := path
-		if p == "" {
-			p = "/internal/metrics"
-			opts.getLogger().Warnf("metrics path is switched automatically to %s", p)
-		}
-		opts.routes = append(opts.routes, HandlerOptions{
-			p: p,
-			h: promhttp.Handler(),
-			m: []string{http.MethodGet},
-		})
 	}
 }
 
@@ -493,35 +316,6 @@ func HeaderMatcher(keys []string) runtime.ServeMuxOption {
 		}
 		return runtime.DefaultHeaderMatcher(key)
 	})
-}
-
-// Tracing is an option to enable tracing on unary requests.
-func Tracing(tracer opentracing.Tracer) Option {
-	return UnaryInterceptors(otgrpc.OpenTracingServerInterceptor(tracer))
-}
-
-// StreamTracing is an option to enable tracing on stream requests.
-func StreamTracing(tracer opentracing.Tracer) Option {
-	return StreamInterceptors(otgrpc.OpenTracingStreamServerInterceptor(tracer))
-}
-
-// ShutdownHook expose an API for shutdown the server remotely.
-//
-// WARNING: this is an experiment API and
-// it should be enabled only in development mode for live reload.
-func ShutdownHook(path string) Option {
-	return func(opts *Server) {
-		// do nothing if path is empty.
-		if path == "" {
-			return
-		}
-		hopt := HandlerOptions{}
-		hopt.p = path
-		hopt.h = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-			opts.Shutdown(context.Background())
-		})
-		opts.routes = append(opts.routes, hopt)
-	}
 }
 
 // recoveryHandler print the context log to the configured writer and return

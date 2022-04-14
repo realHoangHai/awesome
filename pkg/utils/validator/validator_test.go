@@ -1,7 +1,7 @@
 package validator_test
 
 import (
-	"github.com/realHoangHai/awesomeProject/utils/validator"
+	"github.com/realHoangHai/awesome/pkg/utils/validator"
 	"testing"
 )
 

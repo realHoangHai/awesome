@@ -6,10 +6,9 @@ package server
 import (
 	"context"
 	"github.com/gorilla/mux"
-	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/realHoangHai/awesome/internal/auth"
-	"github.com/realHoangHai/awesome/internal/health"
+	"github.com/realHoangHai/awesome/config"
 	"github.com/realHoangHai/awesome/pkg/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -23,7 +22,22 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	// register default codecs
+	_ "github.com/realHoangHai/awesome/pkg/encoding/json"
+	_ "google.golang.org/grpc/encoding/proto"
 )
+
+// ListenAndServe create a new server base on environment configuration (see server.Config)
+// and serve the services with background context.
+func ListenAndServe(cfg *config.Config, services ...Service) error {
+	return ListenAndServeContext(context.Background(), cfg, services...)
+}
+
+// ListenAndServeContext create a new server base on environment configuration (see server.Config)
+// and serve the services with the given context.
+func ListenAndServeContext(ctx context.Context, cfg *config.Config, services ...Service) error {
+	return New(FromEnv(cfg)).ListenAndServeContext(ctx, services...)
+}
 
 type (
 	// Server holds the configuration options for the server instance.
@@ -52,12 +66,6 @@ type (
 		unaryInterceptors  []grpc.UnaryServerInterceptor
 
 		log log.Logger
-
-		auth auth.Authenticator
-
-		// health checks
-		healthCheckPath string
-		healthSrv       health.Server
 	}
 
 	// Option is a configuration option.
@@ -77,12 +85,12 @@ type (
 
 // New return new server with the given options.
 // If address is not set, default address ":8000" will be used.
-func New(ops ...Option) *Server {
+func New(opts ...Option) *Server {
 	server := &Server{
 		routesPrioritization: true,
 	}
-	for _, op := range ops {
-		op(server)
+	for _, opt := range opts {
+		opt(server)
 	}
 	if server.log == nil {
 		server.log = log.Root()
@@ -90,10 +98,6 @@ func New(ops ...Option) *Server {
 	if server.address == "" {
 		server.address = defaultAddr
 	}
-	if server.healthSrv == nil {
-		server.healthSrv = health.NewServer(map[string]health.Checker{})
-	}
-
 	return server
 }
 
@@ -115,18 +119,14 @@ func (server *Server) ListenAndServeContext(ctx context.Context, services ...Ser
 		}
 		server.lis = lis
 	}
-	if server.auth != nil {
-		server.streamInterceptors = append(server.streamInterceptors, auth.StreamInterceptor(server.auth))
-		server.unaryInterceptors = append(server.unaryInterceptors, auth.UnaryInterceptor(server.auth))
-	}
 	isSecured := server.tlsCertFile != "" && server.tlsKeyFile != ""
 
 	// server options
 	if len(server.streamInterceptors) > 0 {
-		server.serverOptions = append(server.serverOptions, grpc.StreamInterceptor(grpcMiddleware.ChainStreamServer(server.streamInterceptors...)))
+		server.serverOptions = append(server.serverOptions, grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(server.streamInterceptors...)))
 	}
 	if len(server.unaryInterceptors) > 0 {
-		server.serverOptions = append(server.serverOptions, grpc.UnaryInterceptor(grpcMiddleware.ChainUnaryServer(server.unaryInterceptors...)))
+		server.serverOptions = append(server.serverOptions, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(server.unaryInterceptors...)))
 	}
 	if isSecured {
 		creds, err := credentials.NewServerTLSFromFile(server.tlsCertFile, server.tlsKeyFile)
@@ -155,8 +155,6 @@ func (server *Server) ListenAndServeContext(ctx context.Context, services ...Ser
 		server.log.Context(ctx).Warn("server: insecured mode is enabled.")
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
-	// expose health services via gRPC.
-	services = append(services, server.healthSrv)
 
 	for _, s := range services {
 		s.Register(grpcServer)
@@ -164,14 +162,6 @@ func (server *Server) ListenAndServeContext(ctx context.Context, services ...Ser
 			epSrv.RegisterWithEndpoint(ctx, gw, server.address, dialOpts)
 		}
 	}
-	// Add internal handlers.
-	server.routes = append([]HandlerOptions{
-		{
-			p: server.getHealthCheckPath(),
-			h: server.healthSrv,
-			m: []string{http.MethodGet},
-		},
-	}, server.routes...)
 	// Serve gRPC and GW only and only if there is at least one service registered.
 	if len(services) > 0 {
 		server.routes = append(server.routes, HandlerOptions{p: server.getAPIPrefix(), h: gw, prefix: true})
@@ -201,13 +191,6 @@ func (server *Server) ListenAndServeContext(ctx context.Context, services ...Ser
 		errChan <- server.httpSrv.Serve(server.lis)
 	}()
 
-	// init health check service.
-	if err := server.healthSrv.Init(health.StatusServing); err != nil {
-		server.log.Context(ctx).Errorf("server: start health check server, err: %v", err)
-		server.Shutdown(ctx)
-		return err
-	}
-	defer server.healthSrv.Close()
 	server.log.Context(ctx).Infof("server: listening at: %s", server.address)
 	select {
 	case <-ctx.Done():
@@ -247,17 +230,10 @@ func grpcHandlerFunc(isSecured bool, grpcServer *grpc.Server, mux http.Handler) 
 	}), &http2.Server{})
 }
 
-func (server Server) getHealthCheckPath() string {
-	if server.healthCheckPath == "" {
-		return "/internal/health"
-	}
-	return server.healthCheckPath
-}
-
 // With allows user to add more options to the server after created.
 func (server *Server) With(opts ...Option) *Server {
-	for _, op := range opts {
-		op(server)
+	for _, opt := range opts {
+		opt(server)
 	}
 	return server
 }
@@ -276,11 +252,6 @@ func (server Server) getAPIPrefix() string {
 
 // Shutdown shutdown the server gracefully.
 func (server *Server) Shutdown(ctx context.Context) {
-	if server.healthSrv != nil {
-		if err := server.healthSrv.Close(); err != nil {
-			server.log.Errorf("server: shutdown health check service error: %v", err)
-		}
-	}
 	if server.httpSrv != nil {
 		ctx, cancel := context.WithTimeout(ctx, server.shutdownTimeout)
 		defer cancel()

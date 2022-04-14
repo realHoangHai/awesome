@@ -6,12 +6,12 @@ import (
 )
 
 type (
-	// JsonObject is a map prepresent a struct information.
-	JsonObject map[string]interface{}
+	// M is a map prepresent a struct information.
+	M map[string]interface{}
 )
 
-// ToJsonObject convert a struct to a json object/map.
-func ToJsonObject(v interface{}) (JsonObject, error) {
+// Parse convert a struct to a json object/map.
+func Parse(v interface{}) (M, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -24,35 +24,35 @@ func ToJsonObject(v interface{}) (JsonObject, error) {
 }
 
 // Keys return keys of the json object.
-func (jo JsonObject) Keys() []string {
-	v := make([]string, 0)
-	for k := range jo {
-		v = append(v, k)
+func (m M) Keys() []string {
+	keys := make([]string, 0)
+	for key := range m {
+		keys = append(keys, key)
 	}
-	return v
+	return keys
 }
 
 // Values return values of the json object.
-func (jo JsonObject) Values() []interface{} {
-	v := make([]interface{}, 0)
-	for _, vv := range jo {
-		v = append(v, vv)
+func (m M) Values() []interface{} {
+	values := make([]interface{}, 0)
+	for _, val := range m {
+		values = append(values, val)
 	}
-	return v
+	return values
 }
 
 // StringValues return values of the json object as strings.
-func (jo JsonObject) StringValues() []string {
-	v := make([]string, 0)
-	for _, vv := range jo {
-		v = append(v, fmt.Sprintf("%v", vv))
+func (m M) StringValues() []string {
+	values := make([]string, 0)
+	for _, val := range m {
+		values = append(values, fmt.Sprintf("%v", val))
 	}
-	return v
+	return values
 }
 
 // Sets set value of the keys to the given value.
-func (jo JsonObject) Sets(keys []string, value interface{}) {
-	for _, k := range keys {
-		jo[k] = value
+func (m M) Sets(keys []string, value interface{}) {
+	for _, key := range keys {
+		m[key] = value
 	}
 }

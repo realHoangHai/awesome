@@ -5,6 +5,8 @@ package ent
 import (
 	"time"
 
+	"github.com/realHoangHai/awesome/internal/repo/ent/address"
+	"github.com/realHoangHai/awesome/internal/repo/ent/card"
 	"github.com/realHoangHai/awesome/internal/repo/ent/schema"
 	"github.com/realHoangHai/awesome/internal/repo/ent/user"
 )
@@ -13,6 +15,26 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	addressFields := schema.Address{}.Fields()
+	_ = addressFields
+	// addressDescCreatedAt is the schema descriptor for created_at field.
+	addressDescCreatedAt := addressFields[5].Descriptor()
+	// address.DefaultCreatedAt holds the default value on creation for the created_at field.
+	address.DefaultCreatedAt = addressDescCreatedAt.Default.(func() time.Time)
+	// addressDescUpdatedAt is the schema descriptor for updated_at field.
+	addressDescUpdatedAt := addressFields[6].Descriptor()
+	// address.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	address.DefaultUpdatedAt = addressDescUpdatedAt.Default.(func() time.Time)
+	cardFields := schema.Card{}.Fields()
+	_ = cardFields
+	// cardDescCreatedAt is the schema descriptor for created_at field.
+	cardDescCreatedAt := cardFields[5].Descriptor()
+	// card.DefaultCreatedAt holds the default value on creation for the created_at field.
+	card.DefaultCreatedAt = cardDescCreatedAt.Default.(func() time.Time)
+	// cardDescUpdatedAt is the schema descriptor for updated_at field.
+	cardDescUpdatedAt := cardFields[6].Descriptor()
+	// card.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	card.DefaultUpdatedAt = cardDescUpdatedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
