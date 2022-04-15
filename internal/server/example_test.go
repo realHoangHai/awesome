@@ -9,7 +9,7 @@ import (
 
 func ExampleListenAndServe() {
 	cfg, _ := config.LoadConfig("../../config/config.yaml")
-	if err := server.ListenAndServe(cfg /*services ...Service*/); err != nil {
+	if err := server.ListenAndServe(&cfg /*services ...Service*/); err != nil {
 		panic(err)
 	}
 }
@@ -18,14 +18,14 @@ func ExampleListenAndServeContext() {
 	cfg, _ := config.LoadConfig("../../config/config.yaml")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err := server.ListenAndServeContext(ctx, cfg /*, services ...Service*/); err != nil {
+	if err := server.ListenAndServeContext(ctx, &cfg /*, services ...Service*/); err != nil {
 		panic(err)
 	}
 }
 
 func ExampleNew_fromEnvironmentVariables() {
 	cfg, _ := config.LoadConfig("../../config/config.yaml")
-	srv := server.New(server.FromEnv(cfg))
+	srv := server.New(server.FromEnv(&cfg))
 	if err := srv.ListenAndServe( /*services ...Service*/ ); err != nil {
 		log.Panic(err)
 	}
@@ -34,7 +34,7 @@ func ExampleNew_fromEnvironmentVariables() {
 func ExampleNew_withOptions() {
 	srv := server.New(
 		server.Address(":8080"),
-		server.Logger(log.Fields("service", "micro")),
+		server.Logger(log.Fields("service", "awesome")),
 	)
 	if err := srv.ListenAndServe( /*services ...Service*/ ); err != nil {
 		panic(err)
