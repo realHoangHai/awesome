@@ -29,25 +29,25 @@ func LoadConfig(path string) (cfg Config, err error) {
 }
 
 type SectionCore struct {
-	Name        string `mapstructure:"name" default:"awesome"`
-	Address     string `mapstructure:"address" default:":8088"`
+	Name        string `mapstructure:"name"`
+	Address     string `mapstructure:"address"`
 	TLSCertFile string `mapstructure:"tls_cert_file"`
 	TLSKeyFile  string `mapstructure:"tls_key_file"`
 
-	ReadTimeout     time.Duration `mapstructure:"read_timeout" default:"30s"`
-	WriteTimeout    time.Duration `mapstructure:"write_timeout" default:"30s"`
-	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout" default:"30s"`
-	APIPrefix       string        `env:"api_prefix"`
+	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
+	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
+	APIPrefix       string
 
 	JWTSecret     string `mapstructure:"jwt_secret"`
-	ContextLogger bool   `mapstructure:"context_logger" default:"true"`
+	ContextLogger bool   `mapstructure:"context_logger"`
 
-	Recovery bool `mapstructure:"recovery" default:"true"`
+	Recovery bool `mapstructure:"recovery"`
 
 	CORSAllowedHeaders    []string `mapstructure:"cors_allowed_headers"`
 	CORSAllowedMethods    []string `mapstructure:"cor_allowed_methods"`
 	CORSAllowedOrigins    []string `mapstructure:"cors_allowed_origins"`
-	CORSAllowedCredential bool     `mapstructure:"cors_allowed_credential" default:"false"`
+	CORSAllowedCredential bool     `mapstructure:"cors_allowed_credential"`
 }
 
 type SectionAutoTLS struct {
@@ -66,9 +66,9 @@ type SectionDB struct {
 
 // SectionLog is sub section of config.
 type SectionLog struct {
-	Level      int               `mapstructure:"log_level" default:"5"`
-	Format     string            `mapstructure:"log_format" default:"json"`
-	TimeFormat string            `mapstructure:"log_time_format" default:"Mon, 02 Jan 2006 15:04:05 -0700"`
+	Level      int               `mapstructure:"log_level"`
+	Format     string            `mapstructure:"log_format"`
+	TimeFormat string            `mapstructure:"log_time_format"`
 	Output     string            `mapstructure:"log_output"`
 	Fields     map[string]string `mapstructure:"log_fields"`
 }
