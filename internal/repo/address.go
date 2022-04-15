@@ -3,21 +3,16 @@ package repo
 import (
 	"context"
 	"github.com/realHoangHai/awesome/internal/biz"
-	"github.com/realHoangHai/awesome/pkg/log"
 )
 
 var _ biz.AddressRepo = (*addressRepo)(nil)
 
 type addressRepo struct {
 	store *Store
-	log   *log.Logh
 }
 
-func NewAddressRepo(store *Store, log log.Logger) biz.AddressRepo {
-	return &addressRepo{
-		store: store,
-		log:   nil,
-	}
+func NewAddressRepo(store *Store) biz.AddressRepo {
+	return &addressRepo{store: store}
 }
 
 func (r *addressRepo) CreateAddress(ctx context.Context, a *biz.Address) (*biz.Address, error) {

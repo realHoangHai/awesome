@@ -1,11 +1,11 @@
-package utils_test
+package response_test
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 	"github.com/realHoangHai/awesome/pkg/status"
-	"github.com/realHoangHai/awesome/pkg/utils"
+	"github.com/realHoangHai/awesome/pkg/utils/response"
 	"google.golang.org/grpc/codes"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +17,7 @@ func TestWrite(t *testing.T) {
 	rc := httptest.NewRecorder()
 	body := []byte(`{"name":"test"}`)
 	rct := "application/json"
-	utils.Write(rc, rct, http.StatusOK, body)
+	response.Write(rc, rct, http.StatusOK, body)
 	if bytes.Compare(rc.Body.Bytes(), body) != 0 {
 		t.Errorf("got body: %s, want body: %s", rc.Body.Bytes(), body)
 	}
@@ -35,7 +35,7 @@ func TestWriteJSON(t *testing.T) {
 		"name": "jack",
 	}
 	rct := "application/json"
-	utils.WriteJSON(rc, http.StatusOK, body)
+	response.WriteJSON(rc, http.StatusOK, body)
 
 	want := []byte(`{"name":"jack"}`)
 	if bytes.Compare(rc.Body.Bytes(), want) != 0 {
@@ -52,7 +52,7 @@ func TestWriteJSON(t *testing.T) {
 	rc = httptest.NewRecorder()
 	// use chan to make json.Marshal fail.
 	invalidData := make(chan int)
-	utils.WriteJSON(rc, http.StatusOK, invalidData)
+	response.WriteJSON(rc, http.StatusOK, invalidData)
 	s, err := status.Parse(rc.Body.Bytes())
 	if err != nil {
 		t.Fatalf("got unexpected error: %v\n", err)
@@ -66,7 +66,7 @@ func TestWriteError_Status(t *testing.T) {
 	rc := httptest.NewRecorder()
 	rct := "application/json"
 	give := status.InvalidArgument("invalid request")
-	utils.WriteError(rc, http.StatusBadRequest, give)
+	response.WriteError(rc, http.StatusBadRequest, give)
 
 	if ct := rc.Header().Get("Content-Type"); ct != rct {
 		t.Errorf("got content type: %v, want content type: %v", ct, rct)
@@ -87,7 +87,7 @@ func TestWriteError_NormalError(t *testing.T) {
 	rc := httptest.NewRecorder()
 	rct := "application/json"
 	give := errors.New("internal error")
-	utils.WriteError(rc, http.StatusInternalServerError, give)
+	response.WriteError(rc, http.StatusInternalServerError, give)
 
 	if ct := rc.Header().Get("Content-Type"); ct != rct {
 		t.Errorf("got content type: %v, want content type: %v", ct, rct)

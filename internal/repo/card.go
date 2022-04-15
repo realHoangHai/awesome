@@ -4,21 +4,16 @@ import (
 	"context"
 	"github.com/realHoangHai/awesome/internal/biz"
 	"github.com/realHoangHai/awesome/internal/repo/ent/user"
-	"github.com/realHoangHai/awesome/pkg/log"
 )
 
 var _ biz.CardRepo = (*cardRepo)(nil)
 
 type cardRepo struct {
 	store *Store
-	log   *log.Logh
 }
 
-func NewCardRepo(store *Store, log log.Logger) biz.CardRepo {
-	return &cardRepo{
-		store: store,
-		log:   nil,
-	}
+func NewCardRepo(store *Store) biz.CardRepo {
+	return &cardRepo{store: store}
 }
 
 func (r *cardRepo) CreateCard(ctx context.Context, c *biz.Card) (*biz.Card, error) {

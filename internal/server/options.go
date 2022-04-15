@@ -8,13 +8,12 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/realHoangHai/awesome/config"
 	"github.com/realHoangHai/awesome/pkg/log"
-	"github.com/realHoangHai/awesome/pkg/utils"
+	"github.com/realHoangHai/awesome/pkg/utils/header"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"net"
-	"net/http"
 	"net/textproto"
 	"time"
 )
@@ -24,7 +23,7 @@ const (
 )
 
 // FromEnv is an option to create a new server from environment variables configuration.
-// See Config for the available options.
+// See config.Config for the available options.
 func FromEnv(cfg *config.Config) Option {
 	return func(opts *Server) {
 		FromConfig(cfg)(opts)
@@ -90,11 +89,11 @@ func Listener(lis net.Listener) Option {
 // in the metadata of the incoming request. If no value is provided, a new UUID will be generated.
 func CorrelationIDUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		id, ok := utils.CorrelationIDFromContext(ctx)
+		id, ok := header.CorrelationIDFromContext(ctx)
 		if ok {
 			return handler(ctx, req)
 		}
-		md := metadata.Pairs(utils.XCorrelationID, id)
+		md := metadata.Pairs(header.XCorrelationID, id)
 		if imd, ok := metadata.FromIncomingContext(ctx); ok {
 			md = metadata.Join(md, imd)
 		}
@@ -115,12 +114,12 @@ func UnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) Option {
 // in the metadata of the incoming request. If no value is provided, a new UUID will be generated.
 func CorrelationIDStreamInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		id, ok := utils.CorrelationIDFromContext(ss.Context())
+		id, ok := header.CorrelationIDFromContext(ss.Context())
 		if ok {
 			return handler(srv, ss)
 		}
 		wrapped := grpc_middleware.WrapServerStream(ss)
-		md := metadata.Pairs(utils.XCorrelationID, id)
+		md := metadata.Pairs(header.XCorrelationID, id)
 		if imd, ok := metadata.FromIncomingContext(ss.Context()); ok {
 			md = metadata.Join(md, imd)
 		}
@@ -188,47 +187,6 @@ func ServeMuxOptions(muxOpts ...runtime.ServeMuxOption) Option {
 func Options(serverOpts ...grpc.ServerOption) Option {
 	return func(opts *Server) {
 		opts.serverOptions = append(opts.serverOptions, serverOpts...)
-	}
-}
-
-// Handler is an option allows user to add additional HTTP handlers.
-// Longer patterns take precedence over shorter ones by default,
-// use RoutesPrioritization option to disable this rule.
-// See github.com/gorilla/mux for defining path with variables/patterns.
-//
-// For more options, use HTTPHandlerX.
-func Handler(path string, h http.Handler, methods ...string) Option {
-	return HandlerWithOptions(path, h, NewHandlerOptions().Methods(methods...))
-}
-
-// HandlerFunc is an option similar to HTTPHandler, but for http.HandlerFunc.
-func HandlerFunc(path string, h func(http.ResponseWriter, *http.Request), methods ...string) Option {
-	return HandlerWithOptions(path, http.HandlerFunc(h), NewHandlerOptions().Methods(methods...))
-}
-
-// PrefixHandler is an option to quickly define a prefix HTTP handler.
-// For more options, please use HTTPHandlerX.
-func PrefixHandler(path string, h http.Handler, methods ...string) Option {
-	return HandlerWithOptions(path, h, NewHandlerOptions().Prefix().Methods(methods...))
-}
-
-// NotFoundHandler is an option to provide a custom not found HTTP Handler.
-func NotFoundHandler(h http.Handler) Option {
-	return func(opts *Server) {
-		opts.notFoundHandler = h
-	}
-}
-
-// HandlerWithOptions is an option to define full options such as method, query, header matchers
-// and interceptors for a HTTP handler.
-// Longer patterns take precedence over shorter ones by default,
-// use RoutesPrioritization option to disable this rule.
-// See github.com/gorilla/mux for defining path with variables/patterns.
-func HandlerWithOptions(path string, h http.Handler, hopt *HandlerOptions) Option {
-	return func(opts *Server) {
-		hopt.p = path
-		hopt.h = h
-		opts.routes = append(opts.routes, *hopt)
 	}
 }
 

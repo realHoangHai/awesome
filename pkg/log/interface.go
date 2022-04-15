@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"github.com/realHoangHai/awesome/config"
 	"io"
 	"os"
 	"strings"
@@ -63,11 +64,11 @@ type (
 
 	// Options hold logger options
 	Options struct {
-		Level      Level             `envconfig:"LOG_LEVEL" default:"5"`
-		Format     Format            `envconfig:"LOG_FORMAT" default:"json"`
-		TimeFormat string            `envconfig:"LOG_TIME_FORMAT" default:"Mon, 02 Jan 2006 15:04:05 -0700"`
-		Output     string            `envconfig:"LOG_OUTPUT"`
-		Fields     map[string]string `envconfig:"LOG_FIELDS"`
+		Level      Level
+		Format     Format
+		TimeFormat string
+		Output     string
+		Fields     map[string]string
 		writer     io.Writer
 	}
 	// Option is an option for configure logger.
@@ -190,13 +191,18 @@ func fields(kv ...interface{}) map[string]interface{} {
 // LOG_TIME_FORMAT default:"Mon, 02 Jan 2006 15:04:05 -0700"
 // LOG_OUTPUT, default to be stdout, use file://my.log for writing to a file.
 // LOG_FIELDS is a map of key/value. i.e: name:myservice,site:vietnam
-//func FromEnv(readOpts ...config.ReadOption) Option {
-//	v := &Options{}
-//	if err := config.Read(v, readOpts...); err != nil {
-//		log.Println("[ERROR] log: failed to read log environment config, err:", err)
-//	}
-//	return FromOptions(v)
-//}
+func FromEnv(cfg *config.Config) Option {
+	var w io.Writer
+	v := &Options{
+		Level:      Level(cfg.Log.Level),
+		Format:     Format(cfg.Log.Format),
+		TimeFormat: cfg.Log.TimeFormat,
+		Output:     cfg.Log.Output,
+		Fields:     cfg.Log.Fields,
+		writer:     w,
+	}
+	return FromOptions(v)
+}
 
 // FromOptions is an option to create new logger from an existing Options.
 func FromOptions(opts *Options) Option {

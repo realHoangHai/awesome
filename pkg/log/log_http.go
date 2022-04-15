@@ -2,7 +2,7 @@ package log
 
 import (
 	"github.com/google/uuid"
-	"github.com/realHoangHai/awesome/pkg/utils"
+	"github.com/realHoangHai/awesome/pkg/utils/header"
 	"net/http"
 	"time"
 )
@@ -36,10 +36,10 @@ func NewHTTPContextHandler(l Logger) func(http.Handler) http.Handler {
 }
 
 func getCorrelationID(r *http.Request) string {
-	if id := r.Header.Get(utils.XCorrelationID); id != "" {
+	if id := r.Header.Get(header.XCorrelationID); id != "" {
 		return id
 	}
-	if id := r.Header.Get(utils.XRequestID); id != "" {
+	if id := r.Header.Get(header.XRequestID); id != "" {
 		return id
 	}
 	return uuid.New().String()

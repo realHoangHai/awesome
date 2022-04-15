@@ -26,11 +26,10 @@ type UserRepo interface {
 
 type UserBiz struct {
 	repo UserRepo
-	log  *log.Logh
 }
 
-func NewUserBiz(repo UserRepo, logger log.Logger) *UserBiz {
-	return &UserBiz{repo: repo, log: nil}
+func NewUserBiz(repo UserRepo) *UserBiz {
+	return &UserBiz{repo: repo}
 }
 
 func (biz *UserBiz) CreateUser(ctx context.Context, u *User) (*User, error) {
@@ -52,7 +51,7 @@ func (biz *UserBiz) VerifyPassword(ctx context.Context, u *User) (bool, error) {
 func (biz *UserBiz) GetUserByUserName(ctx context.Context, req *v1.GetUserByUsernameReq) (*v1.GetUserByUsernameReply, error) {
 	user, err := biz.repo.FindByUsername(ctx, req.Username)
 	if err != nil {
-		biz.log.Errorf("get user by username error: %v", err)
+		log.Errorf("get user by username error: %v", err)
 		return nil, err
 	}
 	return &v1.GetUserByUsernameReply{

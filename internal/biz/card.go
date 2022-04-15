@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"github.com/realHoangHai/awesome/pkg/log"
 )
 
 type Card struct {
@@ -20,14 +19,10 @@ type CardRepo interface {
 
 type CardBiz struct {
 	repo CardRepo
-	log  *log.Logh
 }
 
-func NewCardBiz(repo CardRepo, log log.Logger) *CardBiz {
-	return &CardBiz{
-		repo: repo,
-		log:  nil,
-	}
+func NewCardBiz(repo CardRepo) *CardBiz {
+	return &CardBiz{repo: repo}
 }
 
 func (biz *CardBiz) Create(ctx context.Context, c *Card) (*Card, error) {

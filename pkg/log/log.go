@@ -60,6 +60,11 @@ func Errorf(format string, v ...interface{}) {
 	Root().Errorf(format, v...)
 }
 
+// Fatalf fatal with format.
+func Fatalf(format string, v ...interface{}) {
+	Root().Fatalf(format, v...)
+}
+
 // Panicf panic with format.
 func Panicf(format string, v ...interface{}) {
 	Root().Panicf(format, v...)
@@ -85,6 +90,11 @@ func Error(v ...interface{}) {
 	Root().Error(v...)
 }
 
+// Fatal fatal.
+func Fatal(v ...interface{}) {
+	Root().Fatal(v...)
+}
+
 // Panic panic.
 func Panic(v ...interface{}) {
 	Root().Panic(v...)
@@ -101,7 +111,7 @@ func Context(ctx context.Context) Logger {
 }
 
 type (
-	// Logh implement Logger interface using  logrus.
+	// Logh implement Logger interface using logrus.
 	Logh struct {
 		logger *logrus.Entry
 	}

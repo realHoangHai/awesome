@@ -27,13 +27,13 @@ import (
 	_ "google.golang.org/grpc/encoding/proto"
 )
 
-// ListenAndServe create a new server base on environment configuration (see server.Config)
+// ListenAndServe create a new server base on environment configuration (see config.SectionCore)
 // and serve the services with background context.
 func ListenAndServe(cfg *config.Config, services ...Service) error {
 	return ListenAndServeContext(context.Background(), cfg, services...)
 }
 
-// ListenAndServeContext create a new server base on environment configuration (see server.Config)
+// ListenAndServeContext create a new server base on environment configuration (see config.SectionCore)
 // and serve the services with the given context.
 func ListenAndServeContext(ctx context.Context, cfg *config.Config, services ...Service) error {
 	return New(FromEnv(cfg)).ListenAndServeContext(ctx, services...)
@@ -84,11 +84,9 @@ type (
 )
 
 // New return new server with the given options.
-// If address is not set, default address ":8000" will be used.
+// If address is not set, default address ":8088" will be used.
 func New(opts ...Option) *Server {
-	server := &Server{
-		routesPrioritization: true,
-	}
+	server := &Server{}
 	for _, opt := range opts {
 		opt(server)
 	}

@@ -2,27 +2,32 @@ package service
 
 import (
 	"context"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	v1 "github.com/realHoangHai/awesome/api/user/v1"
 	"github.com/realHoangHai/awesome/internal/biz"
-	"github.com/realHoangHai/awesome/pkg/log"
+	"google.golang.org/grpc"
 )
 
 type UserService struct {
 	v1.UnimplementedUserServer
 
-	ub  *biz.UserBiz
-	ab  *biz.AddressBiz
-	cb  *biz.CardBiz
-	log *log.Logh
+	ub *biz.UserBiz
+	ab *biz.AddressBiz
+	cb *biz.CardBiz
 }
 
-func NewUserService(ub *biz.UserBiz, ab *biz.AddressBiz, cb *biz.CardBiz, logger log.Logger) *UserService {
-	return &UserService{
-		ub:  ub,
-		ab:  ab,
-		cb:  cb,
-		log: nil,
-	}
+func NewUserService(ub *biz.UserBiz, ab *biz.AddressBiz, cb *biz.CardBiz) *UserService {
+	return &UserService{ub: ub, ab: ab, cb: cb}
+}
+
+// Register implements server.Service interface.
+func (s *UserService) Register(srv *grpc.Server) {
+	v1.RegisterUserServer(srv, s)
+}
+
+// RegisterWithEndpoint implements server.EndpointService interface.
+func (s *UserService) RegisterWithEndpoint(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) {
+	_ = v1.RegisterUserHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req *v1.CreateUserReq) (*v1.CreateUserReply, error) {

@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"github.com/spf13/viper"
+	"time"
+)
 
 type Config struct {
 	Core  SectionCore  `mapstructure:"core"`
@@ -10,47 +13,41 @@ type Config struct {
 	Redis SectionRedis `mapstructure:"redis"`
 }
 
+func LoadConfig(path string) (cfg Config, err error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName("app")
+	viper.SetConfigType("toml")
+
+	viper.AutomaticEnv()
+
+	if err = viper.ReadInConfig(); err != nil {
+		return
+	}
+
+	err = viper.Unmarshal(&cfg)
+	return
+}
+
 type SectionCore struct {
-	// Name is name of the service.
-	Name string `mapstructure:"NAME" default:"awesome"`
-	// Address is the address of the service in form of host:port.
-	// If PORT environment variable is configured, it will be prioritized over ADDRESS.
-	Address string `mapstructure:"ADDRESS" default:":8000"`
-	// TLSCertFile is path to the TLS certificate file.
-	TLSCertFile string `mapstructure:"TLS_CERT_FILE"`
-	// TLSKeyFile is the path to the TLS key file.
-	TLSKeyFile string `mapstructure:"TLS_KEY_FILE"`
+	Name        string `mapstructure:"name" default:"awesome"`
+	Address     string `mapstructure:"address" default:":8088"`
+	TLSCertFile string `mapstructure:"tls_cert_file"`
+	TLSKeyFile  string `mapstructure:"tls_key_file"`
 
-	// ReadTimeout is read timeout of both gRPC and HTTP server.
-	ReadTimeout time.Duration `mapstructure:"READ_TIMEOUT" default:"30s"`
-	// WriteTimeout is write timeout of both gRPC and HTTP server.
-	WriteTimeout time.Duration `mapstructure:"WRITE_TIMEOUT" default:"30s"`
-	//ShutdownTimeout is timeout for shutting down the server.
-	ShutdownTimeout time.Duration `mapstructure:"SHUTDOWN_TIMEOUT" default:"30s"`
-	// APIPrefix is path prefix that gRPC API Gateway is routed to.
-	APIPrefix string `envconfig:"API_PREFIX" default:"/api/"`
+	ReadTimeout     time.Duration `mapstructure:"read_timeout" default:"30s"`
+	WriteTimeout    time.Duration `mapstructure:"write_timeout" default:"30s"`
+	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout" default:"30s"`
+	APIPrefix       string        `env:"api_prefix"`
 
-	// JWTSecret is a short way to enable JWT Authentictor with the secret.
-	JWTSecret string `mapstructure:"JWT_SECRET"`
-	// ContextLogger is an option to enable context logger with request-id.
-	ContextLogger bool `mapstructure:"CONTEXT_LOGGER" default:"true"`
+	JWTSecret     string `mapstructure:"jwt_secret"`
+	ContextLogger bool   `mapstructure:"context_logger" default:"true"`
 
-	// Recovery is a short way to enable recovery interceptors for both unary and stream handlers.
-	Recovery bool `mapstructure:"RECOVERY" default:"true"`
+	Recovery bool `mapstructure:"recovery" default:"true"`
 
-	// CORS options
-	CORSAllowedHeaders    []string `mapstructure:"CORS_ALLOWED_HEADERS"`
-	CORSAllowedMethods    []string `mapstructure:"CORS_ALLOWED_METHODS"`
-	CORSAllowedOrigins    []string `mapstructure:"CORS_ALLOWED_ORIGINS"`
-	CORSAllowedCredential bool     `mapstructure:"CORS_ALLOWED_CREDENTIAL" default:"false"`
-
-	// Metrics enable/disable standard metrics
-	Metrics bool `mapstructure:"METRICS" default:"true"`
-	// MetricsPath is API path for Prometheus metrics.
-	MetricsPath string `mapstructure:"METRICS_PATH" default:"/internal/metrics"`
-
-	RoutesPrioritization bool   `mapstructure:"ROUTES_PRIORITIZATION" default:"true"`
-	ShutdownHook         string `mapstructure:"SHUTDOWN_HOOK"`
+	CORSAllowedHeaders    []string `mapstructure:"cors_allowed_headers"`
+	CORSAllowedMethods    []string `mapstructure:"cor_allowed_methods"`
+	CORSAllowedOrigins    []string `mapstructure:"cors_allowed_origins"`
+	CORSAllowedCredential bool     `mapstructure:"cors_allowed_credential" default:"false"`
 }
 
 type SectionAutoTLS struct {
@@ -69,7 +66,11 @@ type SectionDB struct {
 
 // SectionLog is sub section of config.
 type SectionLog struct {
-	Format string `mapstructure:"format"`
+	Level      int               `mapstructure:"log_level" default:"5"`
+	Format     string            `mapstructure:"log_format" default:"json"`
+	TimeFormat string            `mapstructure:"log_time_format" default:"Mon, 02 Jan 2006 15:04:05 -0700"`
+	Output     string            `mapstructure:"log_output"`
+	Fields     map[string]string `mapstructure:"log_fields"`
 }
 
 type SectionRedis struct {

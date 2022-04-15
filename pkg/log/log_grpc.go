@@ -3,7 +3,7 @@ package log
 import (
 	"context"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/realHoangHai/awesome/pkg/utils"
+	"github.com/realHoangHai/awesome/pkg/utils/header"
 	"google.golang.org/grpc"
 	"time"
 )
@@ -14,7 +14,7 @@ import (
 // For REST API via gRPC Gateway, pass the value of X-Correlation-ID or X-Request-ID in the header.
 func StreamInterceptor(l Logger) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		correlationID, _ := utils.CorrelationIDFromContext(ss.Context())
+		correlationID, _ := header.CorrelationIDFromContext(ss.Context())
 		logger := l.Fields(CorrelationID, correlationID, "method", info.FullMethod)
 		newCtx := NewContext(ss.Context(), logger)
 		wrapped := grpc_middleware.WrapServerStream(ss)
@@ -33,7 +33,7 @@ func StreamInterceptor(l Logger) grpc.StreamServerInterceptor {
 // For REST API via gRPC Gateway, pass the value of X-Correlation-ID or X-Request-ID in the header.
 func UnaryInterceptor(l Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		correlationID, _ := utils.CorrelationIDFromContext(ctx)
+		correlationID, _ := header.CorrelationIDFromContext(ctx)
 		logger := l.Fields(CorrelationID, correlationID, "method", info.FullMethod)
 		newCtx := NewContext(ctx, logger)
 		return runWithLog(logger, info.FullMethod, func() (interface{}, error) {

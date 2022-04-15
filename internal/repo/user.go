@@ -20,11 +20,10 @@ var userCacheKey = func(username string) string {
 
 type userRepo struct {
 	store *Store
-	log   *log.Logh
 }
 
-func NewUserRepo(store *Store, logger log.Logger) biz.UserRepo {
-	return &userRepo{store: store, log: nil}
+func NewUserRepo(store *Store) biz.UserRepo {
+	return &userRepo{store: store}
 }
 
 func (r *userRepo) CreateUser(ctx context.Context, arg *biz.User) (*biz.User, error) {
@@ -63,7 +62,7 @@ func (r *userRepo) VerifyPassword(ctx context.Context, u *biz.User) (bool, error
 	if err != nil {
 		return false, err
 	}
-	return utils.CheckPasswordHash(u.Password, result.PasswordHash), nil
+	return utils.CheckPassword(u.Password, result.PasswordHash), nil
 }
 
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*biz.User, error) {
@@ -105,9 +104,9 @@ func (r *userRepo) getUserFromCache(ctx context.Context, key string) (*ent.User,
 func (r *userRepo) setUserCache(ctx context.Context, user *ent.User, key string) {
 	marshal, err := json.Marshal(user)
 	if err != nil {
-		r.log.Errorf("fail to set user cache:json.Marshal(%v) error(%v)", user, err)
+		log.Errorf("fail to set user cache:json.Marshal(%v) error(%v)", user, err)
 	}
 	if err := r.store.redisCli.Set(ctx, key, string(marshal), time.Minute*30).Err(); err != nil {
-		r.log.Errorf("fail to set user cache:redis.Set(%v) error(%v)", user, err)
+		log.Errorf("fail to set user cache:redis.Set(%v) error(%v)", user, err)
 	}
 }

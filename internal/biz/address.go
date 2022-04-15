@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"github.com/realHoangHai/awesome/pkg/log"
 )
 
 type Address struct {
@@ -21,14 +20,10 @@ type AddressRepo interface {
 
 type AddressBiz struct {
 	repo AddressRepo
-	log  *log.Logh
 }
 
-func NewAddressBiz(repo AddressRepo, logger log.Logger) *AddressBiz {
-	return &AddressBiz{
-		repo: repo,
-		log:  nil,
-	}
+func NewAddressBiz(repo AddressRepo) *AddressBiz {
+	return &AddressBiz{repo: repo}
 }
 
 func (biz *AddressBiz) Create(ctx context.Context, uid int64, a *Address) (*Address, error) {
