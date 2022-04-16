@@ -15,7 +15,7 @@ func ExampleListenAndServe() {
 }
 
 func ExampleListenAndServeContext() {
-	cfg, _ := config.LoadConfig("../../config/config.yaml")
+	cfg, _ := config.LoadConfig("config.toml")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err := server.ListenAndServeContext(ctx, &cfg /*, services ...Service*/); err != nil {
@@ -24,7 +24,7 @@ func ExampleListenAndServeContext() {
 }
 
 func ExampleNew_fromEnvironmentVariables() {
-	cfg, _ := config.LoadConfig("../../config/config.yaml")
+	cfg, _ := config.LoadConfig("config.toml")
 	srv := server.New(server.FromEnv(&cfg))
 	if err := srv.ListenAndServe( /*services ...Service*/ ); err != nil {
 		log.Panic(err)

@@ -6,10 +6,10 @@ name.
 
 ## Getting Started
 
-### Installtion
+### Installation
 
 The following instructions assume you are using Go Modules for dependency 
-management. Use a [tool](./tools.go) dependency to track the versions of the following 
+management. Use a [tool](./pkg/tools/tools.go) dependency to track the versions of the following 
 executable packages:
 
 	// +build tools
@@ -57,7 +57,7 @@ Start a simple server, get configurations from environment variables.
 package main
 
 import (
-    "github.com/realHoangHai/awesomeProject/server"
+    "github.com/realHoangHai/awesome/server"
 )
 
 func main() {
@@ -74,8 +74,8 @@ More complex with custom options.
 package main
 
 import (
-    "github.com/realHoangHai/awesomeProject/log"
-    "github.com/realHoangHai/awesomeProject/server"
+    "github.com/realHoangHai/awesome/pkg/log"
+    "github.com/realHoangHai/awesome/server"
 )
 
 func main() {
@@ -102,20 +102,8 @@ Currently, awesomeProject supports following features:
 ### Server
 
 - Exposes both gRPC and REST in 1 single port.
-- Internal APIs:
-	- Prometheus metrics.
-	- Health checks.
-	- Debug profiling.
-- Context logging/tracing with X-Request-Id/X-Correlation-Id header/metadata.
 - Authentication interceptors
-- Other options: CORS, HTTP Handler, Serving Single Page Application, Interceptors,...
-
-### Auth
-
-- Authenticator interface.
-- JWT
-- Authenticator, WhiteList, Chains.
-- Interceptors for both gRPC & HTTP
+- Other options: CORS, HTTP Handler, Interceptors,...
 
 
 ### Repository
@@ -156,24 +144,14 @@ the command
 - Config from environment variables.
 - Config from file and other options.
 
-### Health
-
-- Health check for readiness and liveness.
-- Utilities for checking health.
-
 ### Log
 
 - Standard logger interface.
 - Logrus implementation.
-- Context logger & tracing using X-Request-Id and X-Correlation-Id
 - Interceptors for HTTP & gRPC.
 
 ### Util
 
-- Some utilities that might need during the development using awesomeProject.
-
-### Interceptors and Other Options
-
-awesomeProject is completely compatible with Go native and gRPC native, hence you can use external interceptors and other external libraries along with the provided options.
+- Some utilities that might need during the development using awesome.
 
 Interceptors: [go-grpc-middleware](https://github.com/grpc-ecosystem/go-grpc-middleware)
