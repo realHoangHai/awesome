@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/mux"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/realHoangHai/awesome/config"
 	"github.com/realHoangHai/awesome/pkg/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -26,18 +25,6 @@ import (
 	_ "github.com/realHoangHai/awesome/pkg/encoding/json"
 	_ "google.golang.org/grpc/encoding/proto"
 )
-
-// ListenAndServe create a new server base on environment configuration (see config.SectionCore)
-// and serve the services with background context.
-func ListenAndServe(cfg *config.Config, services ...Service) error {
-	return ListenAndServeContext(context.Background(), cfg, services...)
-}
-
-// ListenAndServeContext create a new server base on environment configuration (see config.SectionCore)
-// and serve the services with the given context.
-func ListenAndServeContext(ctx context.Context, cfg *config.Config, services ...Service) error {
-	return New(FromEnv(cfg)).ListenAndServeContext(ctx, services...)
-}
 
 type (
 	// Server holds the configuration options for the server instance.
@@ -99,42 +86,42 @@ func New(opts ...Option) *Server {
 	return server
 }
 
-// ListenAndServe call ListenAndServeContext with background context.
-func (server *Server) ListenAndServe(services ...Service) error {
-	return server.ListenAndServeContext(context.Background(), services...)
+// Run call RunContext with background context.
+func (s *Server) Run(services ...Service) error {
+	return s.RunContext(context.Background(), services...)
 }
 
-// ListenAndServeContext opens a tcp listener used by a grpc.Server and a HTTP server,
+// RunContext opens a tcp listener used by a grpc.Server and a HTTP server,
 // and registers each Service with the grpc.Server. If the Service implements EndpointService
 // its endpoints will be registered to the HTTP Server running on the same port.
 // The server starts with default metrics and health endpoints.
 // If the context is canceled or times out, the gRPC server will attempt a graceful shutdown.
-func (server *Server) ListenAndServeContext(ctx context.Context, services ...Service) error {
-	if server.lis == nil {
-		lis, err := net.Listen("tcp", server.address)
+func (s *Server) RunContext(ctx context.Context, services ...Service) error {
+	if s.lis == nil {
+		lis, err := net.Listen("tcp", s.address)
 		if err != nil {
 			return err
 		}
-		server.lis = lis
+		s.lis = lis
 	}
-	isSecured := server.tlsCertFile != "" && server.tlsKeyFile != ""
+	isSecured := s.tlsCertFile != "" && s.tlsKeyFile != ""
 
 	// server options
-	if len(server.streamInterceptors) > 0 {
-		server.serverOptions = append(server.serverOptions, grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(server.streamInterceptors...)))
+	if len(s.streamInterceptors) > 0 {
+		s.serverOptions = append(s.serverOptions, grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(s.streamInterceptors...)))
 	}
-	if len(server.unaryInterceptors) > 0 {
-		server.serverOptions = append(server.serverOptions, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(server.unaryInterceptors...)))
+	if len(s.unaryInterceptors) > 0 {
+		s.serverOptions = append(s.serverOptions, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(s.unaryInterceptors...)))
 	}
 	if isSecured {
-		creds, err := credentials.NewServerTLSFromFile(server.tlsCertFile, server.tlsKeyFile)
+		creds, err := credentials.NewServerTLSFromFile(s.tlsCertFile, s.tlsKeyFile)
 		if err != nil {
 			return err
 		}
-		server.serverOptions = append(server.serverOptions, grpc.Creds(creds))
+		s.serverOptions = append(s.serverOptions, grpc.Creds(creds))
 	}
-	grpcServer := grpc.NewServer(server.serverOptions...)
-	muxOpts := server.serveMuxOptions
+	grpcServer := grpc.NewServer(s.serverOptions...)
+	muxOpts := s.serveMuxOptions
 	if len(muxOpts) == 0 {
 		muxOpts = []runtime.ServeMuxOption{DefaultHeaderMatcher()}
 	}
@@ -143,64 +130,64 @@ func (server *Server) ListenAndServeContext(ctx context.Context, services ...Ser
 
 	dialOpts := make([]grpc.DialOption, 0)
 	if isSecured {
-		creds, err := credentials.NewClientTLSFromFile(server.tlsCertFile, "")
+		creds, err := credentials.NewClientTLSFromFile(s.tlsCertFile, "")
 		if err != nil {
 			return err
 		}
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
 	}
 	if !isSecured {
-		server.log.Context(ctx).Warn("server: insecured mode is enabled.")
+		s.log.Context(ctx).Warn("server: insecured mode is enabled.")
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
 
-	for _, s := range services {
-		s.Register(grpcServer)
-		if epSrv, ok := s.(EndpointService); ok {
-			epSrv.RegisterWithEndpoint(ctx, gw, server.address, dialOpts)
+	for _, svc := range services {
+		svc.Register(grpcServer)
+		if epSrv, ok := svc.(EndpointService); ok {
+			epSrv.RegisterWithEndpoint(ctx, gw, s.address, dialOpts)
 		}
 	}
 	// Serve gRPC and GW only and only if there is at least one service registered.
 	if len(services) > 0 {
-		server.routes = append(server.routes, HandlerOptions{p: server.getAPIPrefix(), h: gw, prefix: true})
+		s.routes = append(s.routes, HandlerOptions{p: s.getAPIPrefix(), h: gw, prefix: true})
 	}
 	// register all http handlers to the router.
-	server.registerHTTPHandlers(ctx, router)
+	s.registerHTTPHandlers(ctx, router)
 
 	errChan := make(chan error, 1)
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	handler := grpcHandlerFunc(isSecured, grpcServer, router)
-	for i := len(server.httpInterceptors) - 1; i >= 0; i-- {
-		handler = server.httpInterceptors[i](handler)
+	for i := len(s.httpInterceptors) - 1; i >= 0; i-- {
+		handler = s.httpInterceptors[i](handler)
 	}
-	server.httpSrv = &http.Server{
-		Addr:         server.address,
+	s.httpSrv = &http.Server{
+		Addr:         s.address,
 		Handler:      handler,
-		ReadTimeout:  server.readTimeout,
-		WriteTimeout: server.writeTimeout,
+		ReadTimeout:  s.readTimeout,
+		WriteTimeout: s.writeTimeout,
 	}
 	go func() {
 		if isSecured {
-			errChan <- server.httpSrv.ServeTLS(server.lis, server.tlsCertFile, server.tlsKeyFile)
+			errChan <- s.httpSrv.ServeTLS(s.lis, s.tlsCertFile, s.tlsKeyFile)
 			return
 		}
-		errChan <- server.httpSrv.Serve(server.lis)
+		errChan <- s.httpSrv.Serve(s.lis)
 	}()
 
-	server.log.Context(ctx).Infof("server: listening at: %s", server.address)
+	s.log.Context(ctx).Infof("server: listening at: %s", s.address)
 	select {
 	case <-ctx.Done():
-		server.Shutdown(ctx)
+		s.Shutdown(ctx)
 		return ctx.Err()
 	case err := <-errChan:
 		return err
-	case s := <-sigChan:
-		switch s {
+	case sig := <-sigChan:
+		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
-			server.log.Context(ctx).Info("server: gracefully shutdown...")
-			server.Shutdown(ctx)
+			s.log.Context(ctx).Info("server: gracefully shutdown...")
+			s.Shutdown(ctx)
 		}
 	}
 	return nil
@@ -229,52 +216,52 @@ func grpcHandlerFunc(isSecured bool, grpcServer *grpc.Server, mux http.Handler) 
 }
 
 // With allows user to add more options to the server after created.
-func (server *Server) With(opts ...Option) *Server {
+func (s *Server) With(opts ...Option) *Server {
 	for _, opt := range opts {
-		opt(server)
+		opt(s)
 	}
-	return server
+	return s
 }
 
 // Address return address that the server is listening.
-func (server *Server) Address() string {
-	return server.address
+func (s *Server) Address() string {
+	return s.address
 }
 
-func (server Server) getAPIPrefix() string {
-	if server.apiPrefix == "" {
+func (s *Server) getAPIPrefix() string {
+	if s.apiPrefix == "" {
 		return "/"
 	}
-	return server.apiPrefix
+	return s.apiPrefix
 }
 
 // Shutdown shutdown the server gracefully.
-func (server *Server) Shutdown(ctx context.Context) {
-	if server.httpSrv != nil {
-		ctx, cancel := context.WithTimeout(ctx, server.shutdownTimeout)
+func (s *Server) Shutdown(ctx context.Context) {
+	if s.httpSrv != nil {
+		ctx, cancel := context.WithTimeout(ctx, s.shutdownTimeout)
 		defer cancel()
-		if err := server.httpSrv.Shutdown(ctx); err != nil {
-			server.log.Errorf("server: shutdown error: %v", err)
+		if err := s.httpSrv.Shutdown(ctx); err != nil {
+			s.log.Errorf("server: shutdown error: %v", err)
 		}
 	}
 }
 
-func (server *Server) getLogger() log.Logger {
-	if server.log == nil {
+func (s *Server) getLogger() log.Logger {
+	if s.log == nil {
 		return log.Root()
 	}
-	return server.log
+	return s.log
 }
 
-func (server *Server) registerHTTPHandlers(ctx context.Context, router *mux.Router) {
+func (s *Server) registerHTTPHandlers(ctx context.Context, router *mux.Router) {
 	// Longer patterns take precedence over shorter ones.
-	if server.routesPrioritization {
-		sort.Sort(sort.Reverse(handlerOptionsSlice(server.routes)))
+	if s.routesPrioritization {
+		sort.Sort(sort.Reverse(handlerOptionsSlice(s.routes)))
 	}
-	if server.notFoundHandler != nil {
-		router.NotFoundHandler = server.notFoundHandler
+	if s.notFoundHandler != nil {
+		router.NotFoundHandler = s.notFoundHandler
 	}
-	for _, r := range server.routes {
+	for _, r := range s.routes {
 		var route *mux.Route
 		h := r.h
 		info := make([]interface{}, 0)
@@ -300,7 +287,7 @@ func (server *Server) registerHTTPHandlers(ctx context.Context, router *mux.Rout
 			route.Headers(r.hdr...)
 			info = append(info, "headers", r.hdr)
 		}
-		server.log.Context(ctx).Fields(info...).Infof("server: registered HTTP handler")
+		s.log.Context(ctx).Fields(info...).Infof("server: registered HTTP handler")
 
 	}
 }

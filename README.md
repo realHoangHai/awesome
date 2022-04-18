@@ -6,7 +6,9 @@ name.
 
 ## Getting Started
 
-### Installation
+### Usage
+
+#### [Grpc Gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
 The following instructions assume you are using Go Modules for dependency 
 management. Use a [tool](./pkg/tools/tools.go) dependency to track the versions of the following 
@@ -26,6 +28,30 @@ executable packages:
 Run go mod tidy to resolve the versions. Install by running
 	
 	make init
+
+#### [Ent](https://entgo.io/) - an easy-to-use ORM which developed by Facebook
+
+For each entity you want to expose, `cd` to [repo](./internal/storage) and create a
+new file in the [ent/schema](internal/storage/ent/schema) directory by
+
+ 	ent init --target ./ent/schema/ <EntityName>
+
+Configing `Fields` and `Edges` in file already generated.
+
+Finally, run `go generate ./ent` to generate the code.
+
+<details>
+
+<summary>Note</summary>
+
+- [generate.go](./internal/repo/ent/generate.go) is a helper to generate entities.
+  It is already exists before.
+
+- You are still in the [repo](./internal/storage) directory while `init` and `gen`. If not, you must change
+  the command
+
+</details>
+
 
 ### Start your own
 
@@ -104,32 +130,6 @@ Currently, awesomeProject supports following features:
 - Exposes both gRPC and REST in 1 single port.
 - Authentication interceptors
 - Other options: CORS, HTTP Handler, Interceptors,...
-
-
-### Repository
-
-First you need to install [ent](https://entgo.io/).
-
-For each entity you want to expose, `cd` to [repo](./internal/repo) and create a 
-new file in the [ent/schema](./internal/repo/ent/schema) directory by 
-
- 	ent init --target ./ent/schema/ <EntityName>
-
-Configing `Fields` and `Edges` in file already generated.
-
-Finally, run `go generate ./ent` to generate the code.
-
-<details>
-
-<summary>Note</summary>
-
-- [generate.go](./internal/repo/ent/generate.go) is a helper to generate entities.
-It is already exists before.
-
-- You are still in the [repo](./internal/repo) directory while `init` and `gen`. If not, you must change
-the command
-
-</details>
 
 
 ### Cache
