@@ -6,9 +6,17 @@ name.
 
 ## Getting Started
 
-### Usage
+### Table of contents
 
-#### [Grpc Gateway](https://github.com/grpc-ecosystem/grpc-gateway)
+- [Features](#features)
+- [Commands](#commands)
+- [Usages](#usages)
+
+### Commands
+
+- **Grpc Gateway**: gRPC to JSON proxy generator following the gRPC HTTP spec [gRPC Gateway](https://github.com/grpc-ecosystem/grpc-gateway)
+- **SQL databaseSQL**: [Ent](https://entgo.io/) an easy-to-use ORM which developed by Facebook using for query and migrate database.
+
 
 The following instructions assume you are using Go Modules for dependency 
 management. Use a [tool](./pkg/tools/tools.go) dependency to track the versions of the following 
@@ -29,8 +37,6 @@ Run go mod tidy to resolve the versions. Install by running
 	
 	make init
 
-#### [Ent](https://entgo.io/) - an easy-to-use ORM which developed by Facebook
-
 For each entity you want to expose, `cd` to [repo](./internal/storage) and create a
 new file in the [ent/schema](internal/storage/ent/schema) directory by
 
@@ -44,7 +50,7 @@ Finally, run `go generate ./ent` to generate the code.
 
 <summary>Note</summary>
 
-- [generate.go](./internal/repo/ent/generate.go) is a helper to generate entities.
+- [generate.go](./internal/storage/ent/generate.go) is a helper to generate entities.
   It is already exists before.
 
 - You are still in the [repo](./internal/storage) directory while `init` and `gen`. If not, you must change
@@ -53,7 +59,7 @@ Finally, run `go generate ./ent` to generate the code.
 </details>
 
 
-### Start your own
+### Usages
 
 Create new gRPC service
 
@@ -128,15 +134,24 @@ Currently, awesomeProject supports following features:
 ### Server
 
 - Exposes both gRPC and REST in 1 single port.
+- Internal APIs:
+  - Prometheus metrics.
+  - Health checks.
+  - Debug profiling.
 - Authentication interceptors
-- Other options: CORS, HTTP Handler, Interceptors,...
+- Other options: CORS, HTTP Handler, Serving Single Page Application, Interceptors,...
 
+### Auth
 
-### Cache
+- Authenticator interface.
+- JWT
+- Authenticator, WhiteList, Chains.
+- Interceptors for both gRPC & HTTP
 
-- Standard cache service interface.
-- Memory cache.
-- Redis plugin.
+### Health
+
+- Health check for readiness and liveness.
+- Utilities for checking health.
 
 ### Config
 
@@ -149,9 +164,3 @@ Currently, awesomeProject supports following features:
 - Standard logger interface.
 - Logrus implementation.
 - Interceptors for HTTP & gRPC.
-
-### Util
-
-- Some utilities that might need during the development using awesome.
-
-Interceptors: [go-grpc-middleware](https://github.com/grpc-ecosystem/go-grpc-middleware)
