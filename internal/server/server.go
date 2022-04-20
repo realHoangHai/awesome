@@ -9,8 +9,8 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	auth2 "github.com/realHoangHai/awesome/internal/auth"
 	"github.com/realHoangHai/awesome/internal/health"
-	"github.com/realHoangHai/awesome/internal/middleware/auth"
 	"github.com/realHoangHai/awesome/pkg/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -58,7 +58,7 @@ type (
 		log           log.Logger
 		enableMetrics bool
 
-		auth auth.Authenticator
+		auth auth2.Authenticator
 
 		// health checks
 		healthCheckPath string
@@ -118,8 +118,8 @@ func (s *Server) RunWithContext(ctx context.Context, services ...Service) error 
 		s.lis = lis
 	}
 	if s.auth != nil {
-		s.streamInterceptors = append(s.streamInterceptors, auth.StreamInterceptor(s.auth))
-		s.unaryInterceptors = append(s.unaryInterceptors, auth.UnaryInterceptor(s.auth))
+		s.streamInterceptors = append(s.streamInterceptors, auth2.StreamInterceptor(s.auth))
+		s.unaryInterceptors = append(s.unaryInterceptors, auth2.UnaryInterceptor(s.auth))
 	}
 	if s.enableMetrics {
 		s.streamInterceptors = append(s.streamInterceptors, grpc_prometheus.StreamServerInterceptor)
