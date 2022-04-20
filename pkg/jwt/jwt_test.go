@@ -2,7 +2,7 @@ package jwt
 
 import (
 	"context"
-	"github.com/realHoangHai/awesome/internal/auth"
+	"github.com/realHoangHai/awesome/internal/middleware/auth"
 	"google.golang.org/grpc/metadata"
 	"reflect"
 	"testing"

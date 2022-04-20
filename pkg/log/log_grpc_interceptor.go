@@ -2,7 +2,7 @@ package log
 
 import (
 	"context"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/realHoangHai/awesome/pkg/utils/header"
 	"google.golang.org/grpc"
 	"time"

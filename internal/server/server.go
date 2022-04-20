@@ -7,7 +7,10 @@ import (
 	"context"
 	"github.com/gorilla/mux"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/realHoangHai/awesome/internal/health"
+	"github.com/realHoangHai/awesome/internal/middleware/auth"
 	"github.com/realHoangHai/awesome/pkg/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -52,7 +55,14 @@ type (
 		streamInterceptors []grpc.StreamServerInterceptor
 		unaryInterceptors  []grpc.UnaryServerInterceptor
 
-		log log.Logger
+		log           log.Logger
+		enableMetrics bool
+
+		auth auth.Authenticator
+
+		// health checks
+		healthCheckPath string
+		healthSrv       health.Server
 	}
 
 	// Option is a configuration option.
@@ -83,26 +93,37 @@ func New(opts ...Option) *Server {
 	if server.address == "" {
 		server.address = defaultAddr
 	}
+	if server.healthSrv == nil {
+		server.healthSrv = health.NewServer(map[string]health.Checker{})
+	}
 	return server
 }
 
 // Run call RunContext with background context.
 func (s *Server) Run(services ...Service) error {
-	return s.RunContext(context.Background(), services...)
+	return s.RunWithContext(context.Background(), services...)
 }
 
-// RunContext opens a tcp listener used by a grpc.Server and a HTTP server,
+// RunWithContext opens a tcp listener used by a grpc.Server and a HTTP server,
 // and registers each Service with the grpc.Server. If the Service implements EndpointService
 // its endpoints will be registered to the HTTP Server running on the same port.
 // The server starts with default metrics and health endpoints.
 // If the context is canceled or times out, the gRPC server will attempt a graceful shutdown.
-func (s *Server) RunContext(ctx context.Context, services ...Service) error {
+func (s *Server) RunWithContext(ctx context.Context, services ...Service) error {
 	if s.lis == nil {
 		lis, err := net.Listen("tcp", s.address)
 		if err != nil {
 			return err
 		}
 		s.lis = lis
+	}
+	if s.auth != nil {
+		s.streamInterceptors = append(s.streamInterceptors, auth.StreamInterceptor(s.auth))
+		s.unaryInterceptors = append(s.unaryInterceptors, auth.UnaryInterceptor(s.auth))
+	}
+	if s.enableMetrics {
+		s.streamInterceptors = append(s.streamInterceptors, grpc_prometheus.StreamServerInterceptor)
+		s.unaryInterceptors = append(s.unaryInterceptors, grpc_prometheus.UnaryServerInterceptor)
 	}
 	isSecured := s.tlsCertFile != "" && s.tlsKeyFile != ""
 
@@ -140,6 +161,8 @@ func (s *Server) RunContext(ctx context.Context, services ...Service) error {
 		s.log.Context(ctx).Warn("server: insecured mode is enabled.")
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
+	// expose health service via gRPC.
+	services = append(services, s.healthSrv)
 
 	for _, svc := range services {
 		svc.Register(grpcServer)
@@ -147,6 +170,18 @@ func (s *Server) RunContext(ctx context.Context, services ...Service) error {
 			epSrv.RegisterWithEndpoint(ctx, gw, s.address, dialOpts)
 		}
 	}
+	// Make sure Prometheus metrics are initialized.
+	if s.enableMetrics {
+		grpc_prometheus.Register(grpcServer)
+	}
+	// Add internal handlers.
+	s.routes = append([]HandlerOptions{
+		{
+			p: s.getHealthCheckPath(),
+			h: s.healthSrv,
+			m: []string{http.MethodGet},
+		},
+	}, s.routes...)
 	// Serve gRPC and GW only and only if there is at least one service registered.
 	if len(services) > 0 {
 		s.routes = append(s.routes, HandlerOptions{p: s.getAPIPrefix(), h: gw, prefix: true})
@@ -176,6 +211,15 @@ func (s *Server) RunContext(ctx context.Context, services ...Service) error {
 		errChan <- s.httpSrv.Serve(s.lis)
 	}()
 
+	// init health check service.
+	if err := s.healthSrv.Init(health.StatusServing); err != nil {
+		s.log.Context(ctx).Error("server: start health check server, err: %v", err)
+		s.Shutdown(ctx)
+		return err
+	}
+	defer func() {
+		_ = s.healthSrv.Close()
+	}()
 	s.log.Context(ctx).Infof("server: listening at: %s", s.address)
 	select {
 	case <-ctx.Done():
@@ -215,6 +259,13 @@ func grpcHandlerFunc(isSecured bool, grpcServer *grpc.Server, mux http.Handler) 
 	}), &http2.Server{})
 }
 
+func (s *Server) getHealthCheckPath() string {
+	if s.healthCheckPath == "" {
+		return "/internal/health"
+	}
+	return s.healthCheckPath
+}
+
 // With allows user to add more options to the server after created.
 func (s *Server) With(opts ...Option) *Server {
 	for _, opt := range opts {
@@ -237,6 +288,11 @@ func (s *Server) getAPIPrefix() string {
 
 // Shutdown shutdown the server gracefully.
 func (s *Server) Shutdown(ctx context.Context) {
+	if s.healthSrv != nil {
+		if err := s.healthSrv.Close(); err != nil {
+			s.log.Errorf("server: shutdown health check service error: %v", err)
+		}
+	}
 	if s.httpSrv != nil {
 		ctx, cancel := context.WithTimeout(ctx, s.shutdownTimeout)
 		defer cancel()
@@ -288,7 +344,6 @@ func (s *Server) registerHTTPHandlers(ctx context.Context, router *mux.Router) {
 			info = append(info, "headers", r.hdr)
 		}
 		s.log.Context(ctx).Fields(info...).Infof("server: registered HTTP handler")
-
 	}
 }
 

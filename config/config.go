@@ -6,11 +6,12 @@ import (
 )
 
 type Config struct {
-	Core  SectionCore  `mapstructure:"core"`
-	API   SectionAPI   `mapstructure:"api"`
-	DB    SectionDB    `mapstructure:"db"`
-	Log   SectionLog   `mapstructure:"log"`
-	Redis SectionRedis `mapstructure:"redis"`
+	Core   SectionCore   `mapstructure:"core"`
+	API    SectionAPI    `mapstructure:"api"`
+	DB     SectionDB     `mapstructure:"db"`
+	Log    SectionLog    `mapstructure:"log"`
+	Redis  SectionRedis  `mapstructure:"redis"`
+	Health SectionHealth `mapstructure:"health"`
 }
 
 func LoadConfig(path string) (cfg Config, err error) {
@@ -34,10 +35,16 @@ type SectionCore struct {
 	TLSCertFile string `mapstructure:"tls_cert_file"`
 	TLSKeyFile  string `mapstructure:"tls_key_file"`
 
+	HealthCheckPath string `mapstructure:"health_check_path"`
+
 	ReadTimeout     time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
-	APIPrefix       string
+	APIPrefix       string        `mapstructure:"api_prefix"`
+
+	WebDir    string `mapstructure:"web_dir"`
+	WebIndex  string `mapstructure:"web_index"`
+	WebPrefix string `mapstructure:"web_prefix"`
 
 	JWTSecret     string `mapstructure:"jwt_secret"`
 	ContextLogger bool   `mapstructure:"context_logger"`
@@ -48,6 +55,15 @@ type SectionCore struct {
 	CORSAllowedMethods    []string `mapstructure:"cor_allowed_methods"`
 	CORSAllowedOrigins    []string `mapstructure:"cors_allowed_origins"`
 	CORSAllowedCredential bool     `mapstructure:"cors_allowed_credential"`
+
+	PProf       bool   `mapstructure:"pprof"`
+	PProfPrefix string `mapstructure:"pprof_prefix"`
+
+	Metrics     bool   `mapstructure:"metrics"`
+	MetricsPath string `mapstructure:"metrics_path" `
+
+	RoutesPrioritization bool   `mapstructure:"routes_prioritization" `
+	ShutdownHook         string `mapstructure:"shutdown_hook"`
 }
 
 type SectionAutoTLS struct {
@@ -77,4 +93,9 @@ type SectionRedis struct {
 	Addr         string        `mapstructure:"addr"`
 	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+}
+
+type SectionHealth struct {
+	Interval time.Duration `mapstructrue:"interval"`
+	Timeout  time.Duration `mapstructrue:"timeout"`
 }

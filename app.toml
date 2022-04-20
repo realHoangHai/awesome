@@ -1,5 +1,5 @@
-# core
-[core]
+# application
+[app]
 name = "awesome"
 address = ":8080"
 tls_cert_file = "./certs/cert.pem"
@@ -9,10 +9,12 @@ jwt_secret = "iloveu"
 context_logger = true
 recovery = true
 
+# database
 [db]
 driver = "mysql"
 source = "root:secret@tcp(localhost:3306)/awesome_db?charset=utf8mb4&parseTime=True&loc=Local"
 
+# redis
 [redis]
 addr = "localhost:6379"
 read_timeout = "5s"
