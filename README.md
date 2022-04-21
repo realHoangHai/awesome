@@ -1,4 +1,4 @@
-# awesome
+# awesome 🚀
 
 Actually, it is not awesome at all. It's name is awesome because it's owner 
 using JetBrains Goland and he was too lazy to change the default idea project
@@ -30,9 +30,14 @@ awesome uses the following project layout
 ├── internal                  private application and library code
 │   ├── auth                  authentication feature
 │   ├── biz                   business logic layer of the project
+│   │   ├── biz.go            provider of business logic layer
+│   │   ├── user.go           user business
+│   │   └── ...               other entity business
 │   ├── health                healthcheck feature
 │   ├── server                configuration server grpc and http
 │   ├── service               transport layer of the project
+│   │   ├── user.go           user service 
+│   │   └── ...               other entity service 
 │   └── storage               storage layer of the project
 │       ├── ent               ent for storage layer 
 │       │   ├── schema        contains all schema of the entity and its relation
