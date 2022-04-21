@@ -35,3 +35,6 @@ gen.api:
 # generate
 gen.wire:
 	wire ./cmd
+
+generate:
+	go generate ./internal/storage/ent
